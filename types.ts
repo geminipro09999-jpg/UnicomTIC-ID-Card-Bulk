@@ -16,12 +16,14 @@ export interface FontSizes {
   date: number;
 }
 
+export type CutMarkType = 'none' | 'border' | 'crop';
+
 export interface AppSettings {
   pageSize: string;
   cardWidthMM: number;
   cardHeightMM: number;
   manualGrid: ManualGridConfig;
-  showCutMarks: boolean;
+  cutMarkType: CutMarkType;
   logoSize: number;
   fontSizes: FontSizes;
   nameOffset: number;

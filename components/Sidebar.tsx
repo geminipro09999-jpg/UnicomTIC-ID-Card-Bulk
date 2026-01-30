@@ -205,19 +205,43 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
             )}
 
-            {/* Cutting Guides */}
-            <div className="flex items-center gap-2 pt-2">
-              <button 
-                onClick={() => setSettings(p => ({ ...p, showCutMarks: !p.showCutMarks }))}
-                className={`flex-grow py-2 px-3 rounded text-xs font-bold border transition-colors flex items-center justify-center gap-2 ${
-                  settings.showCutMarks 
-                  ? 'bg-blue-50 border-blue-200 text-blue-700' 
-                  : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <Scissors size={14} />
-                {settings.showCutMarks ? 'Cutting Guides: ON' : 'Show Cutting Guides'}
-              </button>
+            {/* Cutting Guides Selection */}
+            <div className="pt-2">
+                <label className="text-xs font-bold text-gray-700 block mb-2 flex items-center gap-1">
+                    <Scissors size={12} /> Cutting Lines / Marks
+                </label>
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                    <button
+                        onClick={() => setSettings(p => ({ ...p, cutMarkType: 'none' }))}
+                        className={`flex-1 py-1.5 text-xs font-medium rounded transition-all ${
+                            settings.cutMarkType === 'none' 
+                            ? 'bg-white shadow text-teal-700' 
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        None
+                    </button>
+                    <button
+                        onClick={() => setSettings(p => ({ ...p, cutMarkType: 'border' }))}
+                        className={`flex-1 py-1.5 text-xs font-medium rounded transition-all ${
+                            settings.cutMarkType === 'border' 
+                            ? 'bg-white shadow text-teal-700' 
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        Borders
+                    </button>
+                    <button
+                        onClick={() => setSettings(p => ({ ...p, cutMarkType: 'crop' }))}
+                        className={`flex-1 py-1.5 text-xs font-medium rounded transition-all ${
+                            settings.cutMarkType === 'crop' 
+                            ? 'bg-white shadow text-teal-700' 
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        Crop Marks
+                    </button>
+                </div>
             </div>
           </div>
         )}

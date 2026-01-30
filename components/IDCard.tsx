@@ -12,7 +12,7 @@ interface IDCardProps {
 const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo }) => {
   const { 
     cardWidthMM, cardHeightMM, logoSize, globalDate, startId,
-    fontSizes, nameOffset, showCutMarks
+    fontSizes, nameOffset, cutMarkType
   } = settings;
   
   // Priority: Data from Excel > Generated ID
@@ -20,15 +20,39 @@ const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo }) =>
   // Priority: Data from Excel > Global Date setting
   const dateToDisplay = data.date || globalDate;
   
+  // Crop Mark Helper
+  const CropMark = ({ style }: { style: React.CSSProperties }) => (
+    <div className="absolute bg-black print:bg-black" style={{ ...style, position: 'absolute' }} />
+  );
+
   return (
     <div 
-      className={`relative ${showCutMarks ? 'cutting-guide' : 'shadow-sm'}`}
+      className={`relative ${cutMarkType === 'border' ? 'cutting-border' : 'shadow-sm'}`}
       style={{
         width: `${cardWidthMM}mm`,
         height: `${cardHeightMM}mm`,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        overflow: 'visible' // Allow crop marks to protrude
       }}
     >
+      {/* Crop Marks Implementation */}
+      {cutMarkType === 'crop' && (
+        <>
+          {/* Top Left */}
+          <CropMark style={{ top: '0', left: '-5mm', width: '5mm', height: '1px' }} />
+          <CropMark style={{ top: '-5mm', left: '0', width: '1px', height: '5mm' }} />
+          {/* Top Right */}
+          <CropMark style={{ top: '0', right: '-5mm', width: '5mm', height: '1px' }} />
+          <CropMark style={{ top: '-5mm', right: '0', width: '1px', height: '5mm' }} />
+          {/* Bottom Left */}
+          <CropMark style={{ bottom: '0', left: '-5mm', width: '5mm', height: '1px' }} />
+          <CropMark style={{ bottom: '-5mm', left: '0', width: '1px', height: '5mm' }} />
+          {/* Bottom Right */}
+          <CropMark style={{ bottom: '0', right: '-5mm', width: '5mm', height: '1px' }} />
+          <CropMark style={{ bottom: '-5mm', right: '0', width: '1px', height: '5mm' }} />
+        </>
+      )}
+
       <div 
         style={{ 
           width: '100%', 
