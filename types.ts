@@ -16,6 +16,11 @@ export interface FontSizes {
   date: number;
 }
 
+export interface Position {
+  x: number;
+  y: number;
+}
+
 export type CutMarkType = 'none' | 'border' | 'crop';
 
 export interface AppSettings {
@@ -25,8 +30,10 @@ export interface AppSettings {
   manualGrid: ManualGridConfig;
   cutMarkType: CutMarkType;
   logoSize: number;
+  logoPos: Position;
   fontSizes: FontSizes;
-  nameOffset: number;
+  namePos: Position;
+  idPos: Position;
   globalDate: string;
   startId: string;
 }

@@ -11,8 +11,8 @@ interface IDCardProps {
 
 const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo }) => {
   const { 
-    cardWidthMM, cardHeightMM, logoSize, globalDate, startId,
-    fontSizes, nameOffset, cutMarkType
+    cardWidthMM, cardHeightMM, logoSize, logoPos, globalDate, startId,
+    fontSizes, namePos, idPos, cutMarkType
   } = settings;
   
   // Priority: Data from Excel > Generated ID
@@ -64,39 +64,49 @@ const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo }) =>
           boxSizing: 'border-box',
           padding: '4mm'
         }}
-        className="flex flex-col"
       >
-        {/* Top Row: Logo & ID */}
-        <div className="flex justify-between items-start w-full">
-          <div className="flex-shrink-0">
-            <UnicomLogo size={logoSize} customLogo={customLogo} />
-          </div>
-          
-          <div className="flex-grow flex justify-end items-start pt-2">
-            <span 
-              className="font-id font-bold text-[#333]" 
-              style={{ 
-                fontSize: `${fontSizes.id}pt`, 
-                lineHeight: 1, 
-                letterSpacing: '1px' 
-              }}
-            >
-              {idToDisplay}
-            </span>
-          </div>
-        </div>
-
-        {/* Middle: Name with manual offset */}
+        {/* Absolute Logo - Top Left Origin */}
         <div 
-          className="flex-grow flex items-center justify-center -mt-4 relative"
-          style={{ top: `${nameOffset}px` }}
+          className="absolute top-[4mm] left-[4mm] z-10"
+          style={{
+              transform: `translate(${logoPos.x}px, ${logoPos.y}px)`
+          }}
+        >
+          <UnicomLogo size={logoSize} customLogo={customLogo} />
+        </div>
+        
+        {/* Absolute ID - Top Right Origin */}
+        <div 
+            className="absolute top-[4mm] right-[4mm] z-10 text-right"
+            style={{
+                transform: `translate(${idPos.x}px, ${idPos.y}px)`
+            }}
         >
           <span 
-            className="font-name font-bold text-[#2d3748] text-center uppercase" 
-            style={{ fontSize: `${fontSizes.name}pt` }}
+            className="font-id font-bold text-[#333] block whitespace-nowrap" 
+            style={{ 
+              fontSize: `${fontSizes.id}pt`, 
+              lineHeight: 1, 
+              letterSpacing: '1px'
+            }}
           >
-            {data.name}
+            {idToDisplay}
           </span>
+        </div>
+
+        {/* Centered Name Container */}
+        <div 
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        >
+             <span 
+                className="font-name font-bold text-[#2d3748] text-center uppercase" 
+                style={{ 
+                    fontSize: `${fontSizes.name}pt`,
+                    transform: `translate(${namePos.x}px, ${namePos.y}px)`
+                }}
+            >
+                {data.name}
+            </span>
         </div>
 
         {/* Bottom Row: Date & Box */}

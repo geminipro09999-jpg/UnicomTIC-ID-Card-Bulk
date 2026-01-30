@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { 
   Layout, Upload, Settings, Type, Printer, 
   ChevronDown, ChevronRight, Scissors, RefreshCw, 
-  Grid
+  Grid, Move
 } from 'lucide-react';
 import { AppSettings, ColumnMapping, LayoutConfig } from '../types';
 
@@ -387,77 +387,179 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             <hr className="border-gray-100"/>
 
-            <div>
-              <label className="text-xs text-gray-600 block mb-1">Logo Size ({settings.logoSize}px)</label>
-              <input 
-                type="range" min="30" max="100" 
-                value={settings.logoSize} 
-                onChange={(e) => setSettings(p => ({ ...p, logoSize: Number(e.target.value) }))}
-                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-              />
-            </div>
+            {/* LOGO CONFIGURATION */}
+            <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                <div className="flex justify-between items-center mb-2">
+                    <label className="text-xs font-bold text-gray-700 uppercase flex items-center gap-1">
+                        <Move size={12} /> Logo Config
+                    </label>
+                </div>
 
-            <div>
-              <label className="text-xs text-gray-600 block mb-1">Custom Logo</label>
-              <div className="flex gap-2">
-                <label className="flex-grow cursor-pointer bg-gray-50 border border-dashed border-gray-300 rounded p-1.5 text-center hover:bg-gray-100">
-                  <span className="text-xs text-gray-500">{customLogo ? 'Change' : 'Upload'}</span>
-                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                </label>
-                {customLogo && (
-                  <button onClick={() => setCustomLogo(null)} className="px-2 text-red-500 border border-red-200 rounded hover:bg-red-50">×</button>
-                )}
-              </div>
+                <div className="space-y-3">
+                    <div>
+                        <div className="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Size</span>
+                            <span>{settings.logoSize}px</span>
+                        </div>
+                        <input 
+                            type="range" min="30" max="200" 
+                            value={settings.logoSize} 
+                            onChange={(e) => setSettings(p => ({ ...p, logoSize: Number(e.target.value) }))}
+                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Left / Right</span>
+                                <span className="text-[10px] text-gray-400">{settings.logoPos.x}px</span>
+                            </div>
+                            <input 
+                                type="range" min="-100" max="100" 
+                                value={settings.logoPos.x}
+                                onChange={(e) => setSettings(p => ({ ...p, logoPos: { ...p.logoPos, x: Number(e.target.value) } }))}
+                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                            />
+                        </div>
+                        <div>
+                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Up / Down</span>
+                                <span className="text-[10px] text-gray-400">{settings.logoPos.y}px</span>
+                            </div>
+                            <input 
+                                type="range" min="-50" max="50" 
+                                value={settings.logoPos.y}
+                                onChange={(e) => setSettings(p => ({ ...p, logoPos: { ...p.logoPos, y: Number(e.target.value) } }))}
+                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-2">
+                        <div className="flex gap-2">
+                            <label className="flex-grow cursor-pointer bg-white border border-dashed border-gray-300 rounded p-1.5 text-center hover:bg-gray-50">
+                                <span className="text-xs text-gray-500 font-medium">{customLogo ? 'Change File' : 'Upload File'}</span>
+                                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                            </label>
+                            {customLogo && (
+                                <button onClick={() => setCustomLogo(null)} className="px-2 text-red-500 border border-red-200 rounded hover:bg-red-50 bg-white">×</button>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* 3. Typography & Alignment */}
+      {/* 3. Typography & Positioning */}
       <div>
-        <SectionHeader title="Typography & Alignment" icon={Type} isOpen={openSections.typo} onClick={() => toggleSection('typo')} />
+        <SectionHeader title="Typography & Positioning" icon={Type} isOpen={openSections.typo} onClick={() => toggleSection('typo')} />
         {openSections.typo && (
           <div className="p-2 space-y-4 mb-4">
-            <div>
-              <div className="flex justify-between text-xs text-gray-600 mb-1">
-                <span>Name Font Size</span>
-                <span>{settings.fontSizes.name}pt</span>
-              </div>
-              <input 
-                type="range" min="10" max="30" 
-                value={settings.fontSizes.name}
-                onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, name: Number(e.target.value) } }))}
-                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-              />
-            </div>
+            
+            {/* NAME SETTINGS */}
+            <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase flex items-center gap-1">
+                    <Move size={12} /> Name Configuration
+                </h4>
+                
+                <div className="space-y-3">
+                    <div>
+                        <div className="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Font Size</span>
+                            <span>{settings.fontSizes.name}pt</span>
+                        </div>
+                        <input 
+                            type="range" min="8" max="60" 
+                            value={settings.fontSizes.name}
+                            onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, name: Number(e.target.value) } }))}
+                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                        />
+                    </div>
 
-            <div>
-              <div className="flex justify-between text-xs text-gray-600 mb-1">
-                <span>Name Vertical Position</span>
-                <span>{settings.nameOffset > 0 ? `+${settings.nameOffset}` : settings.nameOffset}px</span>
-              </div>
-              <input 
-                type="range" min="-50" max="50" 
-                value={settings.nameOffset}
-                onChange={(e) => setSettings(p => ({ ...p, nameOffset: Number(e.target.value) }))}
-                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-              />
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Left / Right</span>
+                                <span className="text-[10px] text-gray-400">{settings.namePos.x}px</span>
+                            </div>
+                            <input 
+                                type="range" min="-100" max="100" 
+                                value={settings.namePos.x}
+                                onChange={(e) => setSettings(p => ({ ...p, namePos: { ...p.namePos, x: Number(e.target.value) } }))}
+                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                            />
+                        </div>
+                        <div>
+                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Up / Down</span>
+                                <span className="text-[10px] text-gray-400">{settings.namePos.y}px</span>
+                            </div>
+                            <input 
+                                type="range" min="-50" max="50" 
+                                value={settings.namePos.y}
+                                onChange={(e) => setSettings(p => ({ ...p, namePos: { ...p.namePos, y: Number(e.target.value) } }))}
+                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <hr className="border-gray-100"/>
 
-            <div>
-              <div className="flex justify-between text-xs text-gray-600 mb-1">
-                <span>ID/UT Number Size</span>
-                <span>{settings.fontSizes.id}pt</span>
-              </div>
-              <input 
-                type="range" min="14" max="40" 
-                value={settings.fontSizes.id}
-                onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, id: Number(e.target.value) } }))}
-                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-              />
+            {/* ID SETTINGS */}
+            <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase flex items-center gap-1">
+                    <Move size={12} /> ID Number Configuration
+                </h4>
+                
+                <div className="space-y-3">
+                    <div>
+                        <div className="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Font Size</span>
+                            <span>{settings.fontSizes.id}pt</span>
+                        </div>
+                        <input 
+                            type="range" min="10" max="60" 
+                            value={settings.fontSizes.id}
+                            onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, id: Number(e.target.value) } }))}
+                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Left / Right</span>
+                                <span className="text-[10px] text-gray-400">{settings.idPos.x}px</span>
+                            </div>
+                            <input 
+                                type="range" min="-100" max="100" 
+                                value={settings.idPos.x}
+                                onChange={(e) => setSettings(p => ({ ...p, idPos: { ...p.idPos, x: Number(e.target.value) } }))}
+                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                            />
+                        </div>
+                        <div>
+                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Up / Down</span>
+                                <span className="text-[10px] text-gray-400">{settings.idPos.y}px</span>
+                            </div>
+                            <input 
+                                type="range" min="-50" max="50" 
+                                value={settings.idPos.y}
+                                onChange={(e) => setSettings(p => ({ ...p, idPos: { ...p.idPos, y: Number(e.target.value) } }))}
+                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <hr className="border-gray-100"/>
 
             <div>
               <div className="flex justify-between text-xs text-gray-600 mb-1">

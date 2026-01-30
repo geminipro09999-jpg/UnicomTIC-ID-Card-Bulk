@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Square, Grid, ZoomIn, ZoomOut, Monitor, Maximize } from 'lucide-react';
 import useStickyState from './hooks/useStickyState';
 import IDCard from './components/IDCard';
@@ -7,12 +7,14 @@ import { AppSettings, Participant, LayoutConfig } from './types';
 
 const DEFAULT_CARD_WIDTH = 85.6;
 const DEFAULT_CARD_HEIGHT = 54;
+const PIXELS_PER_MM = 3.7795275591; // 96 DPI
 
 const App: React.FC = () => {
   // State
   const [viewMode, setViewMode] = useState<'single' | 'grid'>('single');
   const [zoomLevel, setZoomLevel] = useState(1.0);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Default Participants
   const [participants, setParticipants] = useState<Participant[]>([
@@ -36,11 +38,13 @@ const App: React.FC = () => {
     manualGrid: { enabled: false, cols: 2, rows: 5 },
     cutMarkType: 'none',
     logoSize: 50,
+    logoPos: { x: 0, y: 0 },
     fontSizes: { name: 16, id: 24, date: 14 },
-    nameOffset: 0,
+    namePos: { x: 0, y: 0 },
+    idPos: { x: 0, y: 0 },
     globalDate: '02/03/2025',
     startId: '010701'
-  }, 'unicom_settings_v1_2');
+  }, 'unicom_settings_v1_4');
 
   // Paper Sizes
   const paperSizes: Record<string, { width: number; height: number; name: string }> = {
@@ -117,6 +121,56 @@ const App: React.FC = () => {
   const totalPages = Math.ceil(participants.length / layoutConfig.cardsPerPage);
   const handlePrint = () => window.print();
 
+  // Calculate content dimensions in pixels for accurate scaling
+  const contentDimensions = useMemo(() => {
+    if (viewMode === 'single') {
+      return {
+        width: settings.cardWidthMM * PIXELS_PER_MM,
+        height: settings.cardHeightMM * PIXELS_PER_MM,
+        pageHeight: settings.cardHeightMM * PIXELS_PER_MM
+      };
+    } else {
+      const pageW = layoutConfig.width * PIXELS_PER_MM;
+      const pageH = layoutConfig.height * PIXELS_PER_MM;
+      const gap = 32; // space-y-8 = 2rem = 32px
+      const totalH = (pageH * totalPages) + (Math.max(0, totalPages - 1) * gap);
+      return {
+        width: pageW,
+        height: totalH,
+        pageHeight: pageH
+      };
+    }
+  }, [viewMode, settings.cardWidthMM, settings.cardHeightMM, layoutConfig, totalPages]);
+
+  const handleFitToScreen = () => {
+    if (!containerRef.current) return;
+    
+    // Subtract padding (p-8 = 2rem = 32px per side -> 64px total)
+    // Adding a bit more buffer for scrollbars
+    const containerW = containerRef.current.clientWidth - 80;
+    const containerH = containerRef.current.clientHeight - 80;
+    
+    const scaleW = containerW / contentDimensions.width;
+    const scaleH = containerH / contentDimensions.pageHeight; // Fit one page height-wise
+    
+    // Default strategy: Fit Width, but ensure it doesn't overflow height absurdly if single view
+    let optimalScale = Math.min(scaleW, scaleH);
+
+    // In grid view, fitting width is usually better for readability unless it's huge
+    if (viewMode === 'grid') {
+        optimalScale = Math.min(scaleW, containerH / (contentDimensions.pageHeight)); 
+    }
+
+    setZoomLevel(Math.max(0.1, optimalScale * 0.95)); // 95% for margin
+  };
+
+  // Auto-fit on view change
+  useEffect(() => {
+    // Small timeout to ensure DOM is ready
+    const timer = setTimeout(handleFitToScreen, 10);
+    return () => clearTimeout(timer);
+  }, [viewMode, settings.pageSize]);
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       
@@ -164,14 +218,14 @@ const App: React.FC = () => {
                     <div className="w-px h-4 bg-gray-300 mx-1"></div>
                     
                     <button 
-                        onClick={() => setZoomLevel(1.5)} 
+                        onClick={() => setZoomLevel(1)} 
                         className="p-1 hover:bg-white rounded text-gray-500"
                         title="100%"
                     >
                         <Monitor size={16} />
                     </button>
                     <button 
-                        onClick={() => setZoomLevel(viewMode === 'single' ? 1.2 : 0.35)} 
+                        onClick={handleFitToScreen} 
                         className="p-1 hover:bg-white rounded text-gray-500"
                         title="Fit to Screen"
                     >
@@ -184,7 +238,7 @@ const App: React.FC = () => {
                 {/* View Switcher */}
                 <div className="flex bg-gray-100 p-1 rounded-lg">
                     <button 
-                        onClick={() => { setViewMode('single'); setZoomLevel(1.5); }}
+                        onClick={() => setViewMode('single')}
                         className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
                             viewMode === 'single' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                         }`}
@@ -192,7 +246,7 @@ const App: React.FC = () => {
                         <Square size={16} /> Single
                     </button>
                     <button 
-                        onClick={() => { setViewMode('grid'); setZoomLevel(0.35); }}
+                        onClick={() => setViewMode('grid')}
                         className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
                             viewMode === 'grid' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                         }`}
@@ -204,63 +258,78 @@ const App: React.FC = () => {
         </div>
 
         {/* Main Canvas */}
-        <div className="flex-grow overflow-auto p-8 print-container relative bg-gray-500 flex items-start justify-center">
+        <div 
+            ref={containerRef}
+            className="flex-grow overflow-auto p-8 print-container relative bg-gray-500 flex items-start justify-center"
+        >
+            {/* Scaling Wrapper - Defines the scrollable area */}
             <div 
                 style={{ 
-                    transform: `scale(${zoomLevel})`,
-                    transformOrigin: 'top center',
-                    transition: 'transform 0.2s',
-                    paddingBottom: '200px', // Extra scroll space
-                    minHeight: '100%'
+                    width: contentDimensions.width * zoomLevel,
+                    height: contentDimensions.height * zoomLevel,
+                    position: 'relative',
+                    flexShrink: 0
                 }}
             >
-                {viewMode === 'single' ? (
-                    <div className="shadow-2xl">
-                        <IDCard 
-                            data={participants[0]} 
-                            settings={settings} 
-                            index={0}
-                            customLogo={customLogo}
-                        />
-                        <div className="absolute top-full mt-4 w-full text-center text-white/50 text-sm no-print">
-                            Single Card Design Mode
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-8">
-                        {Array.from({ length: totalPages }).map((_, pageIndex) => (
-                            <div 
-                                key={pageIndex}
-                                className="preview-paper page-break"
-                                style={{ 
-                                    width: `${layoutConfig.width}mm`, 
-                                    height: `${layoutConfig.height}mm`,
-                                    padding: `${layoutConfig.margin}mm`, 
-                                    display: 'grid',
-                                    // Robust grid def: use clamped columns, max-content to respect card size
-                                    gridTemplateColumns: `repeat(${layoutConfig.cols}, max-content)`,
-                                    gridAutoRows: 'max-content', 
-                                    gap: `${layoutConfig.gap}mm`,
-                                    alignContent: 'start',
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                {participants
-                                    .slice(pageIndex * layoutConfig.cardsPerPage, (pageIndex + 1) * layoutConfig.cardsPerPage)
-                                    .map((person, i) => (
-                                        <IDCard 
-                                            key={i} 
-                                            data={person} 
-                                            settings={settings} 
-                                            index={(pageIndex * layoutConfig.cardsPerPage) + i}
-                                            customLogo={customLogo}
-                                        />
-                                    ))
-                                }
+                {/* Content Origin Wrapper - Applies the scale transform */}
+                <div 
+                    style={{ 
+                        transform: `scale(${zoomLevel})`,
+                        transformOrigin: 'top left',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: contentDimensions.width,
+                        // height: contentDimensions.height, // Implicit height works best for stacks
+                    }}
+                >
+                    {viewMode === 'single' ? (
+                        <div className="shadow-2xl inline-block">
+                            <IDCard 
+                                data={participants[0]} 
+                                settings={settings} 
+                                index={0}
+                                customLogo={customLogo}
+                            />
+                            <div className="absolute top-full mt-4 w-full text-center text-white/50 text-sm no-print">
+                                Single Card Design Mode
                             </div>
-                        ))}
-                    </div>
-                )}
+                        </div>
+                    ) : (
+                        <div className="space-y-8 inline-block">
+                            {Array.from({ length: totalPages }).map((_, pageIndex) => (
+                                <div 
+                                    key={pageIndex}
+                                    className="preview-paper page-break"
+                                    style={{ 
+                                        width: `${layoutConfig.width}mm`, 
+                                        height: `${layoutConfig.height}mm`,
+                                        padding: `${layoutConfig.margin}mm`, 
+                                        display: 'grid',
+                                        gridTemplateColumns: `repeat(${layoutConfig.cols}, max-content)`,
+                                        gridAutoRows: 'max-content', 
+                                        gap: `${layoutConfig.gap}mm`,
+                                        alignContent: 'start',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    {participants
+                                        .slice(pageIndex * layoutConfig.cardsPerPage, (pageIndex + 1) * layoutConfig.cardsPerPage)
+                                        .map((person, i) => (
+                                            <IDCard 
+                                                key={i} 
+                                                data={person} 
+                                                settings={settings} 
+                                                index={(pageIndex * layoutConfig.cardsPerPage) + i}
+                                                customLogo={customLogo}
+                                            />
+                                        ))
+                                    }
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
       </div>
