@@ -1,0 +1,5 @@
+{
+  "name": "Unicom TIC Bulk ID Generator",
+  "description": "A comprehensive bulk ID card generator featuring Excel data import, customizable layouts, responsive print previews, and persistent configuration settings.",
+  "requestFramePermissions": []
+}
