@@ -27,7 +27,7 @@ const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo }) =>
 
   return (
     <div 
-      className={`relative ${cutMarkType === 'border' ? 'cutting-border' : 'shadow-sm'}`}
+      className={`relative ${cutMarkType === 'border' ? 'cutting-border' : (cutMarkType === 'crop' ? '' : 'shadow-sm')}`}
       style={{
         width: `${cardWidthMM}mm`,
         height: `${cardHeightMM}mm`,

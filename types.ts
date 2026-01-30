@@ -37,6 +37,8 @@ export interface LayoutConfig {
   name: string;
   cols: number;
   rows: number;
+  maxCols: number;
+  maxRows: number;
   cardsPerPage: number;
   margin: number;
   gap: number;

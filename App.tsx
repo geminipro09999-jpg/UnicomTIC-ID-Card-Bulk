@@ -60,39 +60,55 @@ const App: React.FC = () => {
               ...paper,
               cols: 1,
               rows: 1,
+              maxCols: 1,
+              maxRows: 1,
               cardsPerPage: 1,
               margin: 0,
               gap: 0
           };
       }
 
-      // If Manual Grid is enabled
-      if (settings.manualGrid.enabled) {
-          return {
-              ...paper,
-              cols: settings.manualGrid.cols,
-              rows: settings.manualGrid.rows,
-              cardsPerPage: settings.manualGrid.cols * settings.manualGrid.rows,
-              margin: 8, 
-              gap: 4
-          };
-      }
-
-      // Auto Layout
-      const margin = 8; // 8mm print margin
+      // Auto Layout Calculation (Limits)
+      // Reduced margin to 5mm to fit 5 rows on A4 (270mm content + 16mm gap > 281mm avail if margin 8)
+      // With margin 5: Avail height 287mm. Required for 5 rows + 4 gaps: (54*5)+(4*4) = 286mm. Fits.
+      const margin = 5; 
       const gap = 4;    // 4mm gap between cards
       const availW = paper.width - (2 * margin);
       const availH = paper.height - (2 * margin);
-      const cols = Math.floor((availW + gap) / (settings.cardWidthMM + gap));
-      const rows = Math.floor((availH + gap) / (settings.cardHeightMM + gap));
-      const safeCols = Math.max(1, cols);
-      const safeRows = Math.max(1, rows);
+      
+      const maxCols = Math.floor((availW + gap) / (settings.cardWidthMM + gap));
+      const maxRows = Math.floor((availH + gap) / (settings.cardHeightMM + gap));
+      
+      const safeMaxCols = Math.max(1, maxCols);
+      const safeMaxRows = Math.max(1, maxRows);
 
+      // If Manual Grid is enabled
+      if (settings.manualGrid.enabled) {
+          // Clamp user manual settings to what physically fits
+          // This ensures "add to next rows" behavior (wrapping) if manual cols > maxCols
+          const effectiveCols = Math.min(settings.manualGrid.cols, safeMaxCols);
+          const effectiveRows = Math.min(settings.manualGrid.rows, safeMaxRows);
+
+          return {
+              ...paper,
+              cols: effectiveCols,
+              rows: effectiveRows,
+              maxCols: safeMaxCols,
+              maxRows: safeMaxRows,
+              cardsPerPage: effectiveCols * effectiveRows,
+              margin,
+              gap
+          };
+      }
+
+      // Auto Mode
       return {
           ...paper,
-          cols: safeCols,
-          rows: safeRows,
-          cardsPerPage: safeCols * safeRows,
+          cols: safeMaxCols,
+          rows: safeMaxRows,
+          maxCols: safeMaxCols,
+          maxRows: safeMaxRows,
+          cardsPerPage: safeMaxCols * safeMaxRows,
           margin,
           gap
       };
@@ -221,9 +237,8 @@ const App: React.FC = () => {
                                     height: `${layoutConfig.height}mm`,
                                     padding: `${layoutConfig.margin}mm`, 
                                     display: 'grid',
-                                    // Use strict columns for alignment, but auto rows for flow
+                                    // Robust grid def: use clamped columns, max-content to respect card size
                                     gridTemplateColumns: `repeat(${layoutConfig.cols}, max-content)`,
-                                    // Implicit rows allow content to flow naturally if manual grid is slightly off
                                     gridAutoRows: 'max-content', 
                                     gap: `${layoutConfig.gap}mm`,
                                     alignContent: 'start',

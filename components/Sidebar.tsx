@@ -173,29 +173,35 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {settings.manualGrid.enabled ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] text-gray-500 uppercase font-bold">Columns</label>
-                      <input 
-                        type="number" 
-                        min="1" max="10"
-                        value={settings.manualGrid.cols}
-                        onChange={(e) => setSettings(p => ({ ...p, manualGrid: { ...p.manualGrid, cols: Math.max(1, parseInt(e.target.value) || 1) } }))}
-                        className="w-full mt-1 p-1.5 border rounded text-sm text-center"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-gray-500 uppercase font-bold">Rows</label>
+                      <label className="text-[10px] text-gray-500 uppercase font-bold flex justify-between">
+                        Cols <span className="text-teal-600 font-normal">Max: {layoutConfig.maxCols}</span>
+                      </label>
                       <input 
                         type="number" 
                         min="1" max="15"
+                        value={settings.manualGrid.cols}
+                        onChange={(e) => setSettings(p => ({ ...p, manualGrid: { ...p.manualGrid, cols: Math.max(1, parseInt(e.target.value) || 1) } }))}
+                        className={`w-full mt-1 p-1.5 border rounded text-sm text-center ${settings.manualGrid.cols > layoutConfig.maxCols ? 'border-amber-500 bg-amber-50' : ''}`}
+                        title={settings.manualGrid.cols > layoutConfig.maxCols ? "Exceeds page width, will be clamped" : ""}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500 uppercase font-bold flex justify-between">
+                        Rows <span className="text-teal-600 font-normal">Max: {layoutConfig.maxRows}</span>
+                      </label>
+                      <input 
+                        type="number" 
+                        min="1" max="20"
                         value={settings.manualGrid.rows}
                         onChange={(e) => setSettings(p => ({ ...p, manualGrid: { ...p.manualGrid, rows: Math.max(1, parseInt(e.target.value) || 1) } }))}
-                        className="w-full mt-1 p-1.5 border rounded text-sm text-center"
+                        className={`w-full mt-1 p-1.5 border rounded text-sm text-center ${settings.manualGrid.rows > layoutConfig.maxRows ? 'border-amber-500 bg-amber-50' : ''}`}
+                         title={settings.manualGrid.rows > layoutConfig.maxRows ? "Exceeds page height, will be clamped" : ""}
                       />
                     </div>
                   </div>
                 ) : (
                   <div className="text-xs text-gray-500 italic text-center">
-                    System aligns maximum cards automatically.
+                     Auto-fitting <b>{layoutConfig.cols}</b> cols × <b>{layoutConfig.rows}</b> rows.
                   </div>
                 )}
 
