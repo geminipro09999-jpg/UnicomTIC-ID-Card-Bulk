@@ -88,6 +88,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           setColumnMapping(newMapping);
         }
       }
+      // Reset input value to allow re-uploading the same file
+      e.target.value = '';
     };
     reader.readAsBinaryString(file);
   };
@@ -212,9 +214,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
 
             <div className="pt-2">
-                <label className="text-xs font-bold text-gray-700 block mb-2 flex items-center gap-1">
+                <span className="text-xs font-bold text-gray-700 block mb-2 flex items-center gap-1">
                     <Scissors size={12} /> Cutting Lines / Marks
-                </label>
+                </span>
                 <div className="flex bg-gray-100 p-1 rounded-lg">
                     {(['none', 'border', 'crop'] as const).map(type => (
                       <button
@@ -335,7 +337,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="p-2 space-y-4 mb-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-semibold text-gray-700">Dimensions</label>
+                <span className="text-xs font-semibold text-gray-700">Dimensions</span>
                 <div className="flex bg-gray-100 rounded p-0.5">
                   {(['mm', 'cm', 'px'] as const).map(unit => (
                     <button
@@ -388,9 +390,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
                 <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs font-bold text-gray-700 uppercase flex items-center gap-1">
+                    <span className="text-xs font-bold text-gray-700 uppercase flex items-center gap-1">
                         <Move size={12} /> Logo Config
-                    </label>
+                    </span>
                 </div>
 
                 <div className="space-y-3">
