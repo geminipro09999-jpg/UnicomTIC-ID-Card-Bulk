@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { 
   Layout, Upload, Settings, Type, Printer, 
   ChevronDown, ChevronRight, Scissors, RefreshCw, 
-  Grid, Move
+  Grid, Move, CreditCard
 } from 'lucide-react';
 import { AppSettings, ColumnMapping, LayoutConfig } from '../types';
 
@@ -92,7 +92,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     reader.readAsBinaryString(file);
   };
 
-  // Re-process data when mapping changes
   React.useEffect(() => {
     if (rawExcelData.length === 0) return;
     const processed = rawExcelData.map(row => ({
@@ -120,12 +119,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div className="w-full md:w-96 bg-white border-r border-gray-200 p-4 flex flex-col gap-2 no-print overflow-y-auto h-screen sticky top-0 shadow-xl z-20">
       <div className="flex items-center gap-3 border-b pb-4 mb-2">
-        <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-          U
+        <div className="p-2 bg-teal-100 rounded-lg text-teal-700">
+          <CreditCard size={24} />
         </div>
         <div>
-          <h1 className="font-bold text-xl text-gray-800">Unicom TIC</h1>
-          <p className="text-xs text-gray-500">Bulk ID Generator</p>
+          <h1 className="font-bold text-lg text-gray-800 leading-tight">Bulk ID Studio</h1>
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Custom Card Generator</p>
         </div>
       </div>
 
@@ -151,7 +150,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               ))}
             </div>
 
-            {/* Manual Grid Toggle */}
             {settings.pageSize !== 'CR80' && (
               <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-3">
                 <div className="flex justify-between items-center">
@@ -188,7 +186,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                         value={settings.manualGrid.cols}
                         onChange={(e) => setSettings(p => ({ ...p, manualGrid: { ...p.manualGrid, cols: Math.max(1, parseInt(e.target.value) || 1) } }))}
                         className={`w-full mt-1 p-1.5 border rounded text-sm text-center ${settings.manualGrid.cols > layoutConfig.maxCols ? 'border-amber-500 bg-amber-50' : ''}`}
-                        title={settings.manualGrid.cols > layoutConfig.maxCols ? "Exceeds page width, will be clamped" : ""}
                       />
                     </div>
                     <div>
@@ -203,7 +200,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                         value={settings.manualGrid.rows}
                         onChange={(e) => setSettings(p => ({ ...p, manualGrid: { ...p.manualGrid, rows: Math.max(1, parseInt(e.target.value) || 1) } }))}
                         className={`w-full mt-1 p-1.5 border rounded text-sm text-center ${settings.manualGrid.rows > layoutConfig.maxRows ? 'border-amber-500 bg-amber-50' : ''}`}
-                         title={settings.manualGrid.rows > layoutConfig.maxRows ? "Exceeds page height, will be clamped" : ""}
                       />
                     </div>
                   </div>
@@ -212,14 +208,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                      Auto-fitting <b>{layoutConfig.cols}</b> cols × <b>{layoutConfig.rows}</b> rows.
                   </div>
                 )}
-
-                <div className="border-t pt-2 mt-2 flex justify-between items-center">
-                  <span className="text-xs text-gray-600">Total: <b>{layoutConfig.cardsPerPage}</b> / page</span>
-                </div>
               </div>
             )}
 
-            {/* Cutting Guides Selection */}
             <div className="pt-2">
                 <label className="text-xs font-bold text-gray-700 block mb-2 flex items-center gap-1">
                     <Scissors size={12} /> Cutting Lines / Marks
@@ -251,7 +242,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {openSections.data && (
           <div className="p-2 space-y-4 mb-4">
             <div className="relative">
-              <label htmlFor="excel-upload" className="sr-only">Upload Excel File</label>
+              <label htmlFor="excel-upload" className="block text-xs font-medium text-gray-700 mb-1">Upload Participant File (.xlsx)</label>
               <input 
                 id="excel-upload"
                 name="excel-upload"
@@ -262,7 +253,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               />
             </div>
 
-            {/* Column Mapping UI */}
             {excelHeaders.length > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg space-y-3">
                 <h4 className="text-xs font-bold text-yellow-800 uppercase tracking-wide">Map Excel Columns</h4>
@@ -281,7 +271,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 <div>
-                  <label htmlFor="map-id" className="text-xs text-gray-600 block mb-1 font-medium">ID / UT Number Column</label>
+                  <label htmlFor="map-id" className="text-xs text-gray-600 block mb-1 font-medium">ID Number Column</label>
                   <select 
                     id="map-id"
                     name="map-id"
@@ -289,7 +279,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     value={columnMapping.id}
                     onChange={e => setColumnMapping(p => ({...p, id: e.target.value}))}
                   >
-                    <option value="">(Auto-Generate UT ID)</option>
+                    <option value="">(Auto-Generate ID)</option>
                     {excelHeaders.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
                 </div>
@@ -396,9 +386,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
 
-            <hr className="border-gray-100"/>
-
-            {/* LOGO CONFIGURATION */}
             <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
                 <div className="flex justify-between items-center mb-2">
                     <label className="text-xs font-bold text-gray-700 uppercase flex items-center gap-1">
@@ -409,13 +396,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="space-y-3">
                     <div>
                         <div className="flex justify-between text-xs text-gray-600 mb-1">
-                            <label htmlFor="logo-size" className="font-medium">Size</label>
+                            <label htmlFor="logo-size" className="font-medium">Size (Width)</label>
                             <span>{settings.logoSize}px</span>
                         </div>
                         <input 
                             id="logo-size"
                             name="logo-size"
-                            type="range" min="30" max="200" 
+                            type="range" min="30" max="250" 
                             value={settings.logoSize} 
                             onChange={(e) => setSettings(p => ({ ...p, logoSize: Number(e.target.value) }))}
                             className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
@@ -431,7 +418,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <input 
                                 id="logo-x"
                                 name="logo-x"
-                                type="range" min="-100" max="100" 
+                                type="range" min="-100" max="200" 
                                 value={settings.logoPos.x}
                                 onChange={(e) => setSettings(p => ({ ...p, logoPos: { ...p.logoPos, x: Number(e.target.value) } }))}
                                 className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
@@ -445,7 +432,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <input 
                                 id="logo-y"
                                 name="logo-y"
-                                type="range" min="-50" max="50" 
+                                type="range" min="-100" max="100" 
                                 value={settings.logoPos.y}
                                 onChange={(e) => setSettings(p => ({ ...p, logoPos: { ...p.logoPos, y: Number(e.target.value) } }))}
                                 className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
@@ -456,11 +443,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div className="mt-2">
                         <div className="flex gap-2">
                             <label htmlFor="logo-upload" className="flex-grow cursor-pointer bg-white border border-dashed border-gray-300 rounded p-1.5 text-center hover:bg-gray-50 transition-colors">
-                                <span className="text-xs text-gray-500 font-medium">{customLogo ? 'Change File' : 'Upload File'}</span>
+                                <span className="text-xs text-gray-500 font-medium">{customLogo ? 'Change Logo' : 'Upload Logo'}</span>
                                 <input id="logo-upload" name="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
                             </label>
                             {customLogo && (
-                                <button type="button" onClick={() => setCustomLogo(null)} className="px-2 text-red-500 border border-red-200 rounded hover:bg-red-50 bg-white">×</button>
+                                <button type="button" onClick={() => setCustomLogo(null)} className="px-2 text-red-500 border border-red-200 rounded hover:bg-red-50 bg-white" title="Remove Logo">×</button>
                             )}
                         </div>
                     </div>
@@ -475,13 +462,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         <SectionHeader title="Typography & Positioning" icon={Type} isOpen={openSections.typo} onClick={() => toggleSection('typo')} />
         {openSections.typo && (
           <div className="p-2 space-y-4 mb-4">
-            
-            {/* NAME SETTINGS */}
             <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase flex items-center gap-1">
-                    <Move size={12} /> Name Configuration
-                </h4>
-                
+                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase flex items-center gap-1">Name Layout</h4>
                 <div className="space-y-3">
                     <div>
                         <div className="flex justify-between text-xs text-gray-600 mb-1">
@@ -497,130 +479,64 @@ const Sidebar: React.FC<SidebarProps> = ({
                             className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
                         />
                     </div>
-
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <div className="flex justify-between text-xs text-gray-600 mb-1">
                                 <label htmlFor="name-x" className="font-medium">L / R</label>
                                 <span className="text-[10px] text-gray-400">{settings.namePos.x}px</span>
                             </div>
-                            <input 
-                                id="name-x"
-                                name="name-x"
-                                type="range" min="-100" max="100" 
-                                value={settings.namePos.x}
-                                onChange={(e) => setSettings(p => ({ ...p, namePos: { ...p.namePos, x: Number(e.target.value) } }))}
-                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-                            />
+                            <input id="name-x" name="name-x" type="range" min="-200" max="200" value={settings.namePos.x} onChange={(e) => setSettings(p => ({ ...p, namePos: { ...p.namePos, x: Number(e.target.value) } }))} className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600" />
                         </div>
                         <div>
                             <div className="flex justify-between text-xs text-gray-600 mb-1">
                                 <label htmlFor="name-y" className="font-medium">U / D</label>
                                 <span className="text-[10px] text-gray-400">{settings.namePos.y}px</span>
                             </div>
-                            <input 
-                                id="name-y"
-                                name="name-y"
-                                type="range" min="-50" max="50" 
-                                value={settings.namePos.y}
-                                onChange={(e) => setSettings(p => ({ ...p, namePos: { ...p.namePos, y: Number(e.target.value) } }))}
-                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-                            />
+                            <input id="name-y" name="name-y" type="range" min="-100" max="100" value={settings.namePos.y} onChange={(e) => setSettings(p => ({ ...p, namePos: { ...p.namePos, y: Number(e.target.value) } }))} className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <hr className="border-gray-100"/>
-
-            {/* ID SETTINGS */}
             <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase flex items-center gap-1">
-                    <Move size={12} /> ID Number Configuration
-                </h4>
-                
+                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase flex items-center gap-1">ID Layout</h4>
                 <div className="space-y-3">
                     <div>
                         <div className="flex justify-between text-xs text-gray-600 mb-1">
                             <label htmlFor="font-id" className="font-medium">Font Size</label>
                             <span>{settings.fontSizes.id}pt</span>
                         </div>
-                        <input 
-                            id="font-id"
-                            name="font-id"
-                            type="range" min="10" max="60" 
-                            value={settings.fontSizes.id}
-                            onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, id: Number(e.target.value) } }))}
-                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-                        />
+                        <input id="font-id" name="font-id" type="range" min="10" max="60" value={settings.fontSizes.id} onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, id: Number(e.target.value) } }))} className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600" />
                     </div>
-
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <div className="flex justify-between text-xs text-gray-600 mb-1">
-                                <label htmlFor="id-x" className="font-medium">L / R</label>
-                                <span className="text-[10px] text-gray-400">{settings.idPos.x}px</span>
-                            </div>
-                            <input 
-                                id="id-x"
-                                name="id-x"
-                                type="range" min="-100" max="100" 
-                                value={settings.idPos.x}
-                                onChange={(e) => setSettings(p => ({ ...p, idPos: { ...p.idPos, x: Number(e.target.value) } }))}
-                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-                            />
+                            <div className="flex justify-between text-xs text-gray-600 mb-1"><label htmlFor="id-x" className="font-medium">L / R</label><span className="text-[10px] text-gray-400">{settings.idPos.x}px</span></div>
+                            <input id="id-x" name="id-x" type="range" min="-200" max="200" value={settings.idPos.x} onChange={(e) => setSettings(p => ({ ...p, idPos: { ...p.idPos, x: Number(e.target.value) } }))} className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600" />
                         </div>
                         <div>
-                            <div className="flex justify-between text-xs text-gray-600 mb-1">
-                                <label htmlFor="id-y" className="font-medium">U / D</label>
-                                <span className="text-[10px] text-gray-400">{settings.idPos.y}px</span>
-                            </div>
-                            <input 
-                                id="id-y"
-                                name="id-y"
-                                type="range" min="-50" max="50" 
-                                value={settings.idPos.y}
-                                onChange={(e) => setSettings(p => ({ ...p, idPos: { ...p.idPos, y: Number(e.target.value) } }))}
-                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-                            />
+                            <div className="flex justify-between text-xs text-gray-600 mb-1"><label htmlFor="id-y" className="font-medium">U / D</label><span className="text-[10px] text-gray-400">{settings.idPos.y}px</span></div>
+                            <input id="id-y" name="id-y" type="range" min="-100" max="100" value={settings.idPos.y} onChange={(e) => setSettings(p => ({ ...p, idPos: { ...p.idPos, y: Number(e.target.value) } }))} className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600" />
                         </div>
                     </div>
                 </div>
             </div>
-
-            <hr className="border-gray-100"/>
 
             <div>
               <div className="flex justify-between text-xs text-gray-600 mb-1">
                 <label htmlFor="font-date" className="font-medium">Date Font Size</label>
                 <span>{settings.fontSizes.date}pt</span>
               </div>
-              <input 
-                id="font-date"
-                name="font-date"
-                type="range" min="8" max="20" 
-                value={settings.fontSizes.date}
-                onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, date: Number(e.target.value) } }))}
-                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-              />
+              <input id="font-date" name="font-date" type="range" min="8" max="20" value={settings.fontSizes.date} onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, date: Number(e.target.value) } }))} className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600" />
             </div>
           </div>
         )}
       </div>
 
-      {/* Action Buttons */}
       <div className="mt-auto border-t pt-4">
         <div className="flex justify-between items-center mb-3">
           <span className="text-xs text-gray-600">Total: <b>{totalCards}</b> cards</span>
           <span className="text-xs text-gray-600"><b>{totalPages}</b> pages</span>
         </div>
-
-        {viewMode === 'single' && (
-          <div className="mb-2 p-2 bg-yellow-50 text-yellow-800 text-xs rounded border border-yellow-200 flex gap-2">
-            <span className="font-bold">Note:</span> Switch to "Sheet View" to print all pages.
-          </div>
-        )}
-
         <button 
           type="button"
           onClick={handlePrint}

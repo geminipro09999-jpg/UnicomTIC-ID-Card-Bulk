@@ -10,13 +10,11 @@ const DEFAULT_CARD_HEIGHT = 54;
 const PIXELS_PER_MM = 3.7795275591; // 96 DPI
 
 const App: React.FC = () => {
-  // State
   const [viewMode, setViewMode] = useState<'single' | 'grid'>('single');
   const [zoomLevel, setZoomLevel] = useState(1.0);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Default Participants
   const [participants, setParticipants] = useState<Participant[]>([
       { name: 'Aliyar Arafath', id: 'UT010701', date: null },
       { name: 'Sarah Jenkins', id: 'UT010702', date: null },
@@ -30,7 +28,6 @@ const App: React.FC = () => {
       { name: 'Linda Taylor', id: 'UT010710', date: null }
   ]);
 
-  // Persisted Settings
   const [settings, setSettings] = useStickyState<AppSettings>({
     pageSize: 'A4',
     cardWidthMM: DEFAULT_CARD_WIDTH,
@@ -46,7 +43,6 @@ const App: React.FC = () => {
     startId: '010701'
   }, 'unicom_settings_v1_4');
 
-  // Paper Sizes
   const paperSizes: Record<string, { width: number; height: number; name: string }> = {
       'A4': { width: 210, height: 297, name: 'A4' },
       'A3': { width: 297, height: 420, name: 'A3' },
@@ -54,11 +50,9 @@ const App: React.FC = () => {
       'CR80': { width: 85.6, height: 54, name: 'Single CR80' } 
   };
 
-  // Layout Calculation
   const layoutConfig: LayoutConfig = useMemo(() => {
       const paper = paperSizes[settings.pageSize];
       
-      // CR80 Single Card Mode
       if (settings.pageSize === 'CR80') {
           return {
               ...paper,
@@ -72,11 +66,8 @@ const App: React.FC = () => {
           };
       }
 
-      // Auto Layout Calculation (Limits)
-      // Reduced margin to 5mm to fit 5 rows on A4 (270mm content + 16mm gap > 281mm avail if margin 8)
-      // With margin 5: Avail height 287mm. Required for 5 rows + 4 gaps: (54*5)+(4*4) = 286mm. Fits.
       const margin = 5; 
-      const gap = 4;    // 4mm gap between cards
+      const gap = 4;
       const availW = paper.width - (2 * margin);
       const availH = paper.height - (2 * margin);
       
@@ -86,10 +77,7 @@ const App: React.FC = () => {
       const safeMaxCols = Math.max(1, maxCols);
       const safeMaxRows = Math.max(1, maxRows);
 
-      // If Manual Grid is enabled
       if (settings.manualGrid.enabled) {
-          // Clamp user manual settings to what physically fits
-          // This ensures "add to next rows" behavior (wrapping) if manual cols > maxCols
           const effectiveCols = Math.min(settings.manualGrid.cols, safeMaxCols);
           const effectiveRows = Math.min(settings.manualGrid.rows, safeMaxRows);
 
@@ -105,7 +93,6 @@ const App: React.FC = () => {
           };
       }
 
-      // Auto Mode
       return {
           ...paper,
           cols: safeMaxCols,
@@ -121,7 +108,6 @@ const App: React.FC = () => {
   const totalPages = Math.ceil(participants.length / layoutConfig.cardsPerPage);
   const handlePrint = () => window.print();
 
-  // Calculate content dimensions in pixels for accurate scaling
   const contentDimensions = useMemo(() => {
     if (viewMode === 'single') {
       return {
@@ -132,7 +118,7 @@ const App: React.FC = () => {
     } else {
       const pageW = layoutConfig.width * PIXELS_PER_MM;
       const pageH = layoutConfig.height * PIXELS_PER_MM;
-      const gap = 32; // space-y-8 = 2rem = 32px
+      const gap = 32; 
       const totalH = (pageH * totalPages) + (Math.max(0, totalPages - 1) * gap);
       return {
         width: pageW,
@@ -144,29 +130,18 @@ const App: React.FC = () => {
 
   const handleFitToScreen = () => {
     if (!containerRef.current) return;
-    
-    // Subtract padding (p-8 = 2rem = 32px per side -> 64px total)
-    // Adding a bit more buffer for scrollbars
     const containerW = containerRef.current.clientWidth - 80;
     const containerH = containerRef.current.clientHeight - 80;
-    
     const scaleW = containerW / contentDimensions.width;
-    const scaleH = containerH / contentDimensions.pageHeight; // Fit one page height-wise
-    
-    // Default strategy: Fit Width, but ensure it doesn't overflow height absurdly if single view
+    const scaleH = containerH / contentDimensions.pageHeight;
     let optimalScale = Math.min(scaleW, scaleH);
-
-    // In grid view, fitting width is usually better for readability unless it's huge
     if (viewMode === 'grid') {
         optimalScale = Math.min(scaleW, containerH / (contentDimensions.pageHeight)); 
     }
-
-    setZoomLevel(Math.max(0.1, optimalScale * 0.95)); // 95% for margin
+    setZoomLevel(Math.max(0.1, optimalScale * 0.95));
   };
 
-  // Auto-fit on view change
   useEffect(() => {
-    // Small timeout to ensure DOM is ready
     const timer = setTimeout(handleFitToScreen, 10);
     return () => clearTimeout(timer);
   }, [viewMode, settings.pageSize]);
@@ -187,19 +162,16 @@ const App: React.FC = () => {
         viewMode={viewMode}
       />
 
-      {/* --- Preview Area --- */}
       <div className="flex-grow bg-gray-500 flex flex-col h-screen overflow-hidden">
-        
-         {/* Preview Toolbar */}
         <div className="h-14 bg-white border-b flex items-center justify-between px-6 shadow-sm z-10 no-print flex-shrink-0">
             <h2 className="font-bold text-gray-700 flex items-center gap-2">
-                {viewMode === 'single' ? 'Design Preview' : 'Print Preview'}
+                {viewMode === 'single' ? 'Design Preview' : 'Sheet Preview'}
             </h2>
 
             <div className="flex items-center gap-4">
-                {/* Global Zoom Control */}
                 <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
                     <button 
+                        type="button"
                         onClick={() => setZoomLevel(z => Math.max(0.1, z - 0.1))} 
                         className="p-1 hover:bg-white rounded text-gray-600"
                         title="Zoom Out"
@@ -208,23 +180,24 @@ const App: React.FC = () => {
                     </button>
                     <span className="text-xs font-mono w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
                     <button 
+                        type="button"
                         onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))} 
                         className="p-1 hover:bg-white rounded text-gray-600"
                         title="Zoom In"
                     >
                         <ZoomIn size={16} />
                     </button>
-                    
                     <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                    
                     <button 
+                        type="button"
                         onClick={() => setZoomLevel(1)} 
                         className="p-1 hover:bg-white rounded text-gray-500"
-                        title="100%"
+                        title="Reset Zoom"
                     >
                         <Monitor size={16} />
                     </button>
                     <button 
+                        type="button"
                         onClick={handleFitToScreen} 
                         className="p-1 hover:bg-white rounded text-gray-500"
                         title="Fit to Screen"
@@ -235,9 +208,9 @@ const App: React.FC = () => {
                 
                 <div className="h-6 w-px bg-gray-300"></div>
 
-                {/* View Switcher */}
                 <div className="flex bg-gray-100 p-1 rounded-lg">
                     <button 
+                        type="button"
                         onClick={() => setViewMode('single')}
                         className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
                             viewMode === 'single' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
@@ -246,6 +219,7 @@ const App: React.FC = () => {
                         <Square size={16} /> Single
                     </button>
                     <button 
+                        type="button"
                         onClick={() => setViewMode('grid')}
                         className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
                             viewMode === 'grid' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
@@ -257,12 +231,10 @@ const App: React.FC = () => {
             </div>
         </div>
 
-        {/* Main Canvas */}
         <div 
             ref={containerRef}
             className="flex-grow overflow-auto p-8 print-container relative bg-gray-500 flex items-start justify-center"
         >
-            {/* Scaling Wrapper - Defines the scrollable area */}
             <div 
                 style={{ 
                     width: contentDimensions.width * zoomLevel,
@@ -271,7 +243,6 @@ const App: React.FC = () => {
                     flexShrink: 0
                 }}
             >
-                {/* Content Origin Wrapper - Applies the scale transform */}
                 <div 
                     style={{ 
                         transform: `scale(${zoomLevel})`,
@@ -280,7 +251,6 @@ const App: React.FC = () => {
                         top: 0,
                         left: 0,
                         width: contentDimensions.width,
-                        // height: contentDimensions.height, // Implicit height works best for stacks
                     }}
                 >
                     {viewMode === 'single' ? (
@@ -291,9 +261,6 @@ const App: React.FC = () => {
                                 index={0}
                                 customLogo={customLogo}
                             />
-                            <div className="absolute top-full mt-4 w-full text-center text-white/50 text-sm no-print">
-                                Single Card Design Mode
-                            </div>
                         </div>
                     ) : (
                         <div className="space-y-8 inline-block">
