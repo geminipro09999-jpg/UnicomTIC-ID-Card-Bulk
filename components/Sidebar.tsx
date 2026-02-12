@@ -3,9 +3,10 @@ import * as XLSX from 'xlsx';
 import { 
   Layout, Upload, Settings, Type, Printer, 
   ChevronDown, ChevronRight, Scissors, RefreshCw, 
-  Grid, Move, CreditCard, Save, FolderOpen, Trash2, Search, X, Users, Edit2
+  Grid, Move, CreditCard, Save, FolderOpen, Trash2, Search, X, Users, Edit2,
+  AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd
 } from 'lucide-react';
-import { AppSettings, ColumnMapping, LayoutConfig, Participant } from '../types';
+import { AppSettings, ColumnMapping, LayoutConfig, Participant, HorizontalAlign, VerticalAlign } from '../types';
 
 interface SidebarProps {
   settings: AppSettings;
@@ -17,6 +18,8 @@ interface SidebarProps {
   filteredParticipants: Participant[];
   searchQuery: string;
   setSearchQuery: (q: string) => void;
+  selectedParticipant?: Participant;
+  onSelectParticipant: (p: Participant) => void;
   totalCards: number;
   totalPages: number;
   layoutConfig: LayoutConfig;
@@ -31,9 +34,14 @@ const CONVERSION = {
   px: 0.264583
 };
 
+const FONTS = [
+    'Roboto', 'Roboto Slab', 'Inter', 'Montserrat', 'Open Sans', 'Playfair Display', 'Oswald', 'Courier Prime'
+];
+
 const Sidebar: React.FC<SidebarProps> = ({
   settings, setSettings, customLogo, setCustomLogo, 
   setParticipants, participants, filteredParticipants, searchQuery, setSearchQuery, 
+  selectedParticipant, onSelectParticipant,
   totalCards, totalPages, layoutConfig, handlePrint, viewMode, onEditParticipant
 }) => {
   const [openSections, setOpenSections] = useState({ config: true, layout: false, data: true, list: true, typo: false, design: false });
@@ -43,8 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [rawExcelData, setRawExcelData] = useState<any[]>([]);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
-  const toggleSection = (key: keyof typeof openSections) => 
-    setOpenSections(p => ({ ...p, [key]: !p[key] }));
+  const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   const toDisplayUnit = (valMM: number) => parseFloat((valMM / CONVERSION[dimUnit]).toFixed(2));
   const fromDisplayUnit = (val: string) => parseFloat(val) * CONVERSION[dimUnit];
@@ -135,6 +142,47 @@ const Sidebar: React.FC<SidebarProps> = ({
     </button>
   );
 
+  const AlignmentPicker = ({ 
+    horizontal, vertical, 
+    onHChange, onVChange 
+  }: { 
+    horizontal: HorizontalAlign, 
+    vertical: VerticalAlign,
+    onHChange: (val: HorizontalAlign) => void,
+    onVChange: (val: VerticalAlign) => void
+  }) => (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-1 bg-gray-100 p-0.5 rounded-lg w-fit">
+        {(['left', 'center', 'right'] as HorizontalAlign[]).map(h => (
+          <button
+            key={h}
+            type="button"
+            onClick={() => onHChange(h)}
+            className={`p-1.5 rounded transition-all ${horizontal === h ? 'bg-white shadow text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            {h === 'left' && <AlignLeft size={14} />}
+            {h === 'center' && <AlignCenter size={14} />}
+            {h === 'right' && <AlignRight size={14} />}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-1 bg-gray-100 p-0.5 rounded-lg w-fit">
+        {(['top', 'middle', 'bottom'] as VerticalAlign[]).map(v => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onVChange(v)}
+            className={`p-1.5 rounded transition-all ${vertical === v ? 'bg-white shadow text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            {v === 'top' && <AlignVerticalJustifyStart size={14} />}
+            {v === 'middle' && <AlignVerticalJustifyCenter size={14} />}
+            {v === 'bottom' && <AlignVerticalJustifyEnd size={14} />}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="w-full md:w-96 bg-white border-r border-gray-200 p-4 flex flex-col gap-2 no-print overflow-y-auto h-screen sticky top-0 shadow-xl z-20">
       <div className="flex items-center gap-3 border-b pb-4 mb-2">
@@ -148,7 +196,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <SectionHeader title="App Configuration" icon={Save} isOpen={openSections.config} onClick={() => toggleSection('config')} />
       {openSections.config && (
         <div className="p-2 space-y-3 mb-4">
-          <p className="text-[10px] text-gray-500 italic mb-2">Save your design and mappings as a preset.</p>
+          <p className="text-[10px] text-gray-500 italic mb-2">Save your current design as a preset.</p>
           <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={saveConfiguration} className="flex items-center justify-center gap-2 py-2 px-3 bg-teal-600 hover:bg-teal-700 text-white rounded text-xs font-bold transition-all shadow-sm active:scale-95"><Save size={14} /> Save</button>
             <button type="button" onClick={loadConfiguration} className="flex items-center justify-center gap-2 py-2 px-3 bg-white border border-teal-600 text-teal-700 hover:bg-teal-50 rounded text-xs font-bold transition-all shadow-sm active:scale-95"><FolderOpen size={14} /> Load</button>
@@ -161,54 +209,39 @@ const Sidebar: React.FC<SidebarProps> = ({
       {openSections.list && (
         <div className="p-2 space-y-4 mb-4">
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-              <Search size={14} />
-            </div>
-            <input 
-              type="text" 
-              placeholder="Search by name or ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-sm border rounded-lg bg-gray-50 focus:ring-1 focus:ring-teal-500 outline-none"
-            />
-            {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
-                <X size={14} />
-              </button>
-            )}
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400"><Search size={14} /></div>
+            <input type="text" placeholder="Search by name or ID..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-8 py-2 text-sm border rounded-lg bg-gray-50 focus:ring-1 focus:ring-teal-500 outline-none" />
+            {searchQuery && <button type="button" onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"><X size={14} /></button>}
           </div>
 
           <div className="border rounded-lg overflow-hidden">
-            <div className="bg-gray-50 px-3 py-2 border-b flex justify-between items-center">
-              <span className="text-[10px] font-bold text-gray-500 uppercase">Participant List</span>
-              <span className="text-[10px] text-teal-600 font-bold">{filteredParticipants.length} showing</span>
-            </div>
+            <div className="bg-gray-50 px-3 py-2 border-b flex justify-between items-center"><span className="text-[10px] font-bold text-gray-500 uppercase">Click to Preview Card</span><span className="text-[10px] text-teal-600 font-bold">{filteredParticipants.length} total</span></div>
             <div className="max-height-[300px] overflow-y-auto divide-y divide-gray-100 bg-white" style={{ maxHeight: '300px' }}>
               {filteredParticipants.length > 0 ? (
                 filteredParticipants.map((p) => {
                   const originalIdx = participants.indexOf(p);
+                  const isSelected = selectedParticipant === p;
                   return (
-                    <div key={originalIdx} className="group flex items-center justify-between p-2 hover:bg-teal-50 transition-colors">
+                    <div 
+                        key={originalIdx} 
+                        onClick={() => onSelectParticipant(p)}
+                        className={`group flex items-center justify-between p-2 cursor-pointer transition-all ${isSelected ? 'bg-teal-50 border-l-4 border-teal-600 pl-1' : 'hover:bg-gray-50'}`}
+                    >
                       <div className="min-w-0 flex-grow">
-                        <p className="text-xs font-bold text-gray-800 truncate">{p.name}</p>
+                        <p className={`text-xs font-bold truncate ${isSelected ? 'text-teal-900' : 'text-gray-800'}`}>{p.name}</p>
                         <p className="text-[10px] text-gray-500 font-mono">{p.id || 'No ID'}</p>
                       </div>
                       <button 
                         type="button" 
-                        onClick={() => onEditParticipant(originalIdx)}
+                        onClick={(e) => { e.stopPropagation(); onEditParticipant(originalIdx); }}
                         className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-white rounded transition-all opacity-0 group-hover:opacity-100"
-                        title="Edit individual"
                       >
                         <Edit2 size={12} />
                       </button>
                     </div>
                   );
                 })
-              ) : (
-                <div className="p-8 text-center text-gray-400">
-                  <p className="text-xs italic">No results found</p>
-                </div>
-              )}
+              ) : <div className="p-8 text-center text-gray-400"><p className="text-xs italic">No results found</p></div>}
             </div>
           </div>
         </div>
@@ -217,23 +250,18 @@ const Sidebar: React.FC<SidebarProps> = ({
       <SectionHeader title="Data & Mapping" icon={Upload} isOpen={openSections.data} onClick={() => toggleSection('data')} />
       {openSections.data && (
         <div className="p-2 space-y-4 mb-4">
-          <div>
-            <label htmlFor="excel-upload" className="block text-xs font-medium text-gray-700 mb-1">Upload Excel (.xlsx)</label>
-            <input id="excel-upload" type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} className="w-full text-xs text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" />
-          </div>
-
+          <label className="block text-xs font-medium text-gray-700">Upload Excel File (.xlsx)<input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} className="w-full mt-1 text-xs text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" /></label>
           {excelHeaders.length > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg space-y-3">
-              <div className="flex justify-between items-center"><h4 className="text-xs font-bold text-yellow-800 uppercase tracking-wide">Column Mapping</h4><button type="button" onClick={() => setColumnMapping({name: '', id: '', date: ''})} className="text-yellow-700 hover:text-yellow-900"><Trash2 size={12}/></button></div>
-              <div><label className="text-xs text-gray-600 block mb-1 font-medium">Name</label><select className="w-full p-1.5 text-xs border rounded bg-white shadow-sm" value={columnMapping.name} onChange={e => setColumnMapping(p => ({...p, name: e.target.value}))}><option value="">-- Select --</option>{excelHeaders.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
-              <div><label className="text-xs text-gray-600 block mb-1 font-medium">ID Number</label><select className="w-full p-1.5 text-xs border rounded bg-white shadow-sm" value={columnMapping.id} onChange={e => setColumnMapping(p => ({...p, id: e.target.value}))}><option value="">(Auto-Gen)</option>{excelHeaders.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
-              <div><label className="text-xs text-gray-600 block mb-1 font-medium">Date</label><select className="w-full p-1.5 text-xs border rounded bg-white shadow-sm" value={columnMapping.date} onChange={e => setColumnMapping(p => ({...p, date: e.target.value}))}><option value="">(Default)</option>{excelHeaders.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
+              <div className="flex justify-between items-center"><h4 className="text-xs font-bold text-yellow-800 uppercase">Column Mapping</h4><button type="button" onClick={() => setColumnMapping({name: '', id: '', date: ''})} className="text-yellow-700 hover:text-yellow-900"><Trash2 size={12}/></button></div>
+              <div><label className="text-[10px] font-bold text-gray-600">Name</label><select className="w-full p-1.5 text-xs border rounded bg-white shadow-sm" value={columnMapping.name} onChange={e => setColumnMapping(p => ({...p, name: e.target.value}))}><option value="">-- Select --</option>{excelHeaders.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
+              <div><label className="text-[10px] font-bold text-gray-600">ID Number</label><select className="w-full p-1.5 text-xs border rounded bg-white shadow-sm" value={columnMapping.id} onChange={e => setColumnMapping(p => ({...p, id: e.target.value}))}><option value="">(Auto-Gen)</option>{excelHeaders.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
+              <div><label className="text-[10px] font-bold text-gray-600">Date</label><select className="w-full p-1.5 text-xs border rounded bg-white shadow-sm" value={columnMapping.date} onChange={e => setColumnMapping(p => ({...p, date: e.target.value}))}><option value="">(Default)</option>{excelHeaders.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
             </div>
           )}
-          
           <div className="grid grid-cols-2 gap-2">
-            <div><label className="text-xs text-gray-600 font-medium">Default Date</label><input type="text" value={settings.globalDate} onChange={(e) => setSettings(p => ({ ...p, globalDate: e.target.value }))} className="w-full mt-1 p-1.5 border rounded text-xs" /></div>
-            <div><label className="text-xs text-gray-600 font-medium">Start ID</label><input type="number" value={settings.startId} onChange={(e) => setSettings(p => ({ ...p, startId: e.target.value }))} className="w-full mt-1 p-1.5 border rounded text-xs" /></div>
+            <div><label className="text-[10px] font-bold text-gray-600">Default Date</label><input type="text" value={settings.globalDate} onChange={(e) => setSettings(p => ({ ...p, globalDate: e.target.value }))} className="w-full mt-1 p-1.5 border rounded text-xs" /></div>
+            <div><label className="text-[10px] font-bold text-gray-600">Start ID</label><input type="number" value={settings.startId} onChange={(e) => setSettings(p => ({ ...p, startId: e.target.value }))} className="w-full mt-1 p-1.5 border rounded text-xs" /></div>
           </div>
         </div>
       )}
@@ -268,24 +296,69 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <button type="button" onClick={resetDimensions} className="w-full text-[10px] text-teal-600 hover:underline"><RefreshCw size={10} className="inline mr-1" /> Reset Size</button>
           </div>
-          <div className="bg-gray-50 p-2 rounded-lg border border-gray-100"><span className="text-xs font-bold text-gray-700 uppercase flex items-center gap-1"><Move size={12} /> Logo</span><div className="space-y-3 mt-2"><div><div className="flex justify-between text-[10px] mb-1"><span>Size</span><span>{settings.logoSize}px</span></div><input type="range" min="30" max="250" value={settings.logoSize} onChange={(e) => setSettings(p => ({ ...p, logoSize: Number(e.target.value) }))} className="w-full h-1 bg-gray-200 rounded accent-teal-600" /></div><div className="grid grid-cols-2 gap-3"><div><span className="text-[10px]">L/R</span><input type="range" min="-100" max="200" value={settings.logoPos.x} onChange={(e) => setSettings(p => ({ ...p, logoPos: { ...p.logoPos, x: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 rounded accent-teal-600" /></div><div><span className="text-[10px]">U/D</span><input type="range" min="-100" max="100" value={settings.logoPos.y} onChange={(e) => setSettings(p => ({ ...p, logoPos: { ...p.logoPos, y: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 rounded accent-teal-600" /></div></div><label className="block cursor-pointer bg-white border border-dashed text-center p-2 rounded text-[10px]">{customLogo ? 'Change' : 'Upload'} Logo<input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" /></label></div></div>
+          <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+            <span className="text-[10px] font-bold text-gray-700 uppercase">Logo Alignment</span>
+            <div className="mt-2 mb-4"><AlignmentPicker horizontal={settings.logoAlign.horizontal} vertical={settings.logoAlign.vertical} onHChange={(h) => setSettings(p => ({ ...p, logoAlign: { ...p.logoAlign, horizontal: h } }))} onVChange={(v) => setSettings(p => ({ ...p, logoAlign: { ...p.logoAlign, vertical: v } }))} /></div>
+            <span className="text-[10px] font-bold text-gray-700 uppercase">Logo Offsets</span>
+            <div className="space-y-3 mt-2">
+              <div><div className="flex justify-between text-[10px] mb-1"><span>Size</span><span>{settings.logoSize}px</span></div><input type="range" min="30" max="250" value={settings.logoSize} onChange={(e) => setSettings(p => ({ ...p, logoSize: Number(e.target.value) }))} className="w-full h-1 bg-gray-200 rounded accent-teal-600" /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><span className="text-[10px]">X Adjust</span><input type="range" min="-100" max="200" value={settings.logoPos.x} onChange={(e) => setSettings(p => ({ ...p, logoPos: { ...p.logoPos, x: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 rounded accent-teal-600" /></div>
+                <div><span className="text-[10px]">Y Adjust</span><input type="range" min="-100" max="100" value={settings.logoPos.y} onChange={(e) => setSettings(p => ({ ...p, logoPos: { ...p.logoPos, y: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 rounded accent-teal-600" /></div>
+              </div>
+              <label className="block cursor-pointer bg-white border border-dashed text-center p-2 rounded text-[10px]">{customLogo ? 'Change' : 'Upload'} Logo<input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" /></label>
+            </div>
+          </div>
         </div>
       )}
 
       <SectionHeader title="Typography" icon={Type} isOpen={openSections.typo} onClick={() => toggleSection('typo')} />
       {openSections.typo && (
         <div className="p-2 space-y-4 mb-4">
-          <div className="bg-gray-50 p-2 rounded-lg"><h4 className="text-[10px] font-bold text-gray-500 mb-2 uppercase">Name</h4><div className="space-y-2"><div><span className="text-[10px]">Size {settings.fontSizes.name}pt</span><input type="range" min="8" max="60" value={settings.fontSizes.name} onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, name: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div><div className="grid grid-cols-2 gap-2"><div><span className="text-[10px]">L/R</span><input type="range" min="-200" max="200" value={settings.namePos.x} onChange={(e) => setSettings(p => ({ ...p, namePos: { ...p.namePos, x: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div><div><span className="text-[10px]">U/D</span><input type="range" min="-100" max="100" value={settings.namePos.y} onChange={(e) => setSettings(p => ({ ...p, namePos: { ...p.namePos, y: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div></div></div></div>
-          <div className="bg-gray-50 p-2 rounded-lg"><h4 className="text-[10px] font-bold text-gray-500 mb-2 uppercase">ID</h4><div className="space-y-2"><div><span className="text-[10px]">Size {settings.fontSizes.id}pt</span><input type="range" min="10" max="60" value={settings.fontSizes.id} onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, id: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div><div className="grid grid-cols-2 gap-2"><div><span className="text-[10px]">L/R</span><input type="range" min="-200" max="200" value={settings.idPos.x} onChange={(e) => setSettings(p => ({ ...p, idPos: { ...p.idPos, x: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div><div><span className="text-[10px]">U/D</span><input type="range" min="-100" max="100" value={settings.idPos.y} onChange={(e) => setSettings(p => ({ ...p, idPos: { ...p.idPos, y: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div></div></div></div>
+          <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+            <h4 className="text-[10px] font-bold text-gray-700 mb-2 uppercase">Name Style</h4>
+            <div className="mb-3"><AlignmentPicker horizontal={settings.nameAlign.horizontal} vertical={settings.nameAlign.vertical} onHChange={(h) => setSettings(p => ({ ...p, nameAlign: { ...p.nameAlign, horizontal: h } }))} onVChange={(v) => setSettings(p => ({ ...p, nameAlign: { ...p.nameAlign, vertical: v } }))} /></div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Font Family</label>
+                <select className="w-full p-2 text-xs border rounded bg-white shadow-sm" value={settings.fontFamilies.name} onChange={e => setSettings(p => ({...p, fontFamilies: {...p.fontFamilies, name: e.target.value}}))}>
+                    {FONTS.map(f => <option key={f} value={f} style={{fontFamily: f}}>{f}</option>)}
+                </select>
+              </div>
+              <div><span className="text-[10px] font-bold text-gray-500 uppercase">Size {settings.fontSizes.name}pt</span><input type="range" min="8" max="60" value={settings.fontSizes.name} onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, name: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><span className="text-[10px]">X Adj</span><input type="range" min="-200" max="200" value={settings.namePos.x} onChange={(e) => setSettings(p => ({ ...p, namePos: { ...p.namePos, x: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div>
+                <div><span className="text-[10px]">Y Adj</span><input type="range" min="-100" max="100" value={settings.namePos.y} onChange={(e) => setSettings(p => ({ ...p, namePos: { ...p.namePos, y: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+            <h4 className="text-[10px] font-bold text-gray-700 mb-2 uppercase">ID Style</h4>
+            <div className="mb-3"><AlignmentPicker horizontal={settings.idAlign.horizontal} vertical={settings.idAlign.vertical} onHChange={(h) => setSettings(p => ({ ...p, idAlign: { ...p.idAlign, horizontal: h } }))} onVChange={(v) => setSettings(p => ({ ...p, idAlign: { ...p.idAlign, vertical: v } }))} /></div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Font Family</label>
+                <select className="w-full p-2 text-xs border rounded bg-white shadow-sm" value={settings.fontFamilies.id} onChange={e => setSettings(p => ({...p, fontFamilies: {...p.fontFamilies, id: e.target.value}}))}>
+                    {FONTS.map(f => <option key={f} value={f} style={{fontFamily: f}}>{f}</option>)}
+                </select>
+              </div>
+              <div><span className="text-[10px] font-bold text-gray-500 uppercase">Size {settings.fontSizes.id}pt</span><input type="range" min="10" max="60" value={settings.fontSizes.id} onChange={(e) => setSettings(p => ({ ...p, fontSizes: { ...p.fontSizes, id: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><span className="text-[10px]">X Adj</span><input type="range" min="-200" max="200" value={settings.idPos.x} onChange={(e) => setSettings(p => ({ ...p, idPos: { ...p.idPos, x: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div>
+                <div><span className="text-[10px]">Y Adj</span><input type="range" min="-100" max="100" value={settings.idPos.y} onChange={(e) => setSettings(p => ({ ...p, idPos: { ...p.idPos, y: Number(e.target.value) } }))} className="w-full h-1 bg-gray-200 accent-teal-600" /></div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       <div className="mt-auto border-t pt-4">
         <div className="flex justify-between items-center mb-3">
-          <span className="text-xs text-gray-600">{filteredParticipants.length === totalCards ? `Total: ${totalCards}` : `Showing ${filteredParticipants.length} of ${totalCards}`} cards</span>
-          <span className="text-xs text-gray-600"><b>{totalPages}</b> pages</span>
+          <span className="text-xs text-gray-600">{filteredParticipants.length === totalCards ? `Total: ${totalCards}` : `Showing ${filteredParticipants.length} of ${totalCards}`}</span>
+          <span className="text-xs text-gray-600"><b>{totalPages}</b> sheets</span>
         </div>
-        <button type="button" onClick={handlePrint} className="w-full py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-lg shadow-md font-bold text-base flex items-center justify-center gap-2 transition-transform active:scale-95"><Printer size={20} /> Print {viewMode === 'single' ? 'Sample' : 'All Sheets'}</button>
+        <button type="button" onClick={handlePrint} className="w-full py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-lg shadow-md font-bold text-base flex items-center justify-center gap-2 transition-transform active:scale-95"><Printer size={20} /> Print All Sheets</button>
       </div>
     </div>
   );

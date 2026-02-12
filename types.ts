@@ -16,9 +16,22 @@ export interface FontSizes {
   date: number;
 }
 
+export interface FontFamilies {
+  name: string;
+  id: string;
+}
+
 export interface Position {
   x: number;
   y: number;
+}
+
+export type HorizontalAlign = 'left' | 'center' | 'right';
+export type VerticalAlign = 'top' | 'middle' | 'bottom';
+
+export interface Alignment {
+  horizontal: HorizontalAlign;
+  vertical: VerticalAlign;
 }
 
 export type CutMarkType = 'none' | 'border' | 'crop';
@@ -31,9 +44,13 @@ export interface AppSettings {
   cutMarkType: CutMarkType;
   logoSize: number;
   logoPos: Position;
+  logoAlign: Alignment;
   fontSizes: FontSizes;
+  fontFamilies: FontFamilies;
   namePos: Position;
+  nameAlign: Alignment;
   idPos: Position;
+  idAlign: Alignment;
   globalDate: string;
   startId: string;
 }
