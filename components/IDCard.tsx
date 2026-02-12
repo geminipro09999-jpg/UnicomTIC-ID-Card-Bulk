@@ -163,4 +163,40 @@ const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo, onEd
         {/* Name */}
         <div style={getAlignmentStyles(nameAlign, namePos)}>
              <span 
-                className="uppercase
+                className="uppercase block" 
+                style={{ 
+                    fontSize: `${fontSizes.name}pt`,
+                    fontFamily: fontFamilies.name,
+                    fontWeight: 'bold',
+                    textAlign: nameAlign.horizontal,
+                    color: '#2d3748'
+                }}
+            >
+                {data.name}
+            </span>
+        </div>
+
+        {/* Static Bottom Row: Date & Signature Box */}
+        <div className="absolute bottom-[4mm] left-[4mm] right-[4mm] flex justify-between items-end">
+          <span 
+            className="font-bold text-[#218089]" 
+            style={{ fontSize: `${fontSizes.date}pt`, fontFamily: 'Roboto Slab' }}
+          >
+            {dateToDisplay}
+          </span>
+          
+          <div 
+            style={{ 
+              width: '35mm', 
+              height: '12mm', 
+              border: '2px solid #000',
+              backgroundColor: 'white'
+            }}
+          ></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default IDCard;
