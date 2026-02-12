@@ -12,10 +12,15 @@ interface IDCardProps {
 }
 
 const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo, onEdit }) => {
+  // Merge global settings with participant overrides
+  const effectiveSettings = data.designOverrides 
+    ? { ...settings, ...data.designOverrides } 
+    : settings;
+
   const { 
     cardWidthMM, cardHeightMM, logoSize, logoPos, logoAlign, globalDate, startId,
     fontSizes, fontFamilies, namePos, nameAlign, idPos, idAlign, cutMarkType
-  } = settings;
+  } = effectiveSettings;
   
   const idToDisplay = data.id || `UT${String(parseInt(startId || '0') + index).padStart(6, '0')}`;
   const dateToDisplay = data.date || globalDate;

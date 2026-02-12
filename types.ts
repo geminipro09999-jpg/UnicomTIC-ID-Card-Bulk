@@ -2,6 +2,7 @@ export interface Participant {
   name: string;
   id: string | null;
   date: string | null;
+  designOverrides?: Partial<AppSettings>;
 }
 
 export interface ManualGridConfig {

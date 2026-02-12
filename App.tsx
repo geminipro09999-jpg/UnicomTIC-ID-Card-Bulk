@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilteredIndex, setSelectedFilteredIndex] = useState(0);
+  const [editScope, setEditScope] = useState<'global' | 'individual'>('global');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [participants, setParticipants] = useState<Participant[]>([
@@ -48,7 +49,7 @@ const App: React.FC = () => {
     idAlign: { horizontal: 'right', vertical: 'top' },
     globalDate: '02/03/2025',
     startId: '010701'
-  }, 'unicom_settings_v1_6');
+  }, 'unicom_settings_v1_7');
 
   const paperSizes: Record<string, { width: number; height: number; name: string }> = {
       'A4': { width: 210, height: 297, name: 'A4' },
@@ -65,6 +66,8 @@ const App: React.FC = () => {
       (p.id && p.id.toLowerCase().includes(q))
     );
   }, [participants, searchQuery]);
+
+  const selectedParticipant = filteredParticipants[selectedFilteredIndex];
 
   useEffect(() => {
     if (selectedFilteredIndex >= filteredParticipants.length && filteredParticipants.length > 0) {
@@ -100,10 +103,37 @@ const App: React.FC = () => {
   const handleUpdateParticipant = (index: number, updated: Participant) => {
     setParticipants(prev => {
       const copy = [...prev];
-      copy[index] = updated;
+      copy[index] = { ...copy[index], ...updated };
       return copy;
     });
     setEditingIndex(null);
+  };
+
+  const handleUpdateParticipantOverrides = (newOverrides: Partial<AppSettings>) => {
+    if (!selectedParticipant) return;
+    const originalIndex = participants.indexOf(selectedParticipant);
+    setParticipants(prev => {
+        const copy = [...prev];
+        copy[originalIndex] = {
+            ...copy[originalIndex],
+            designOverrides: {
+                ...(copy[originalIndex].designOverrides || {}),
+                ...newOverrides
+            }
+        };
+        return copy;
+    });
+  };
+
+  const clearParticipantOverrides = () => {
+    if (!selectedParticipant) return;
+    const originalIndex = participants.indexOf(selectedParticipant);
+    setParticipants(prev => {
+        const copy = [...prev];
+        const { designOverrides, ...rest } = copy[originalIndex];
+        copy[originalIndex] = rest;
+        return copy;
+    });
   };
 
   const PAGE_GAP_PX = 32;
@@ -147,11 +177,29 @@ const App: React.FC = () => {
   const goToNext = () => setSelectedFilteredIndex(prev => (prev + 1) % filteredParticipants.length);
   const goToPrev = () => setSelectedFilteredIndex(prev => (prev - 1 + filteredParticipants.length) % filteredParticipants.length);
 
+  // Effective settings for the Sidebar UI based on scope
+  const effectiveSettingsForSidebar = editScope === 'individual' && selectedParticipant?.designOverrides
+    ? { ...settings, ...selectedParticipant.designOverrides }
+    : settings;
+
+  const handleSettingsChange = (newSettingsAction: any) => {
+    if (editScope === 'global') {
+        setSettings(newSettingsAction);
+    } else {
+        // We handle functional updates manually for overrides
+        const newPartial = typeof newSettingsAction === 'function' ? newSettingsAction(effectiveSettingsForSidebar) : newSettingsAction;
+        handleUpdateParticipantOverrides(newPartial);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       <Sidebar 
-        settings={settings} 
-        setSettings={setSettings}
+        settings={effectiveSettingsForSidebar} 
+        setSettings={handleSettingsChange}
+        editScope={editScope}
+        setEditScope={setEditScope}
+        clearOverrides={clearParticipantOverrides}
         customLogo={customLogo}
         setCustomLogo={setCustomLogo}
         setParticipants={(data) => setParticipants(data)}
@@ -159,7 +207,7 @@ const App: React.FC = () => {
         filteredParticipants={filteredParticipants}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        selectedParticipant={filteredParticipants[selectedFilteredIndex]}
+        selectedParticipant={selectedParticipant}
         onSelectParticipant={(p) => {
             const idx = filteredParticipants.indexOf(p);
             if (idx !== -1) {
