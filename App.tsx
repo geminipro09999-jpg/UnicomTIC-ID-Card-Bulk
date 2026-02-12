@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [zoomLevel, setZoomLevel] = useState(1.0);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [participants, setParticipants] = useState<Participant[]>([
@@ -50,6 +51,15 @@ const App: React.FC = () => {
       'A2': { width: 420, height: 594, name: 'A2' },
       'CR80': { width: 85.6, height: 54, name: 'Single CR80' } 
   };
+
+  const filteredParticipants = useMemo(() => {
+    if (!searchQuery.trim()) return participants;
+    const q = searchQuery.toLowerCase();
+    return participants.filter(p => 
+      p.name.toLowerCase().includes(q) || 
+      (p.id && p.id.toLowerCase().includes(q))
+    );
+  }, [participants, searchQuery]);
 
   const layoutConfig: LayoutConfig = useMemo(() => {
       const paper = paperSizes[settings.pageSize];
@@ -106,12 +116,13 @@ const App: React.FC = () => {
       };
   }, [settings.pageSize, settings.cardWidthMM, settings.cardHeightMM, settings.manualGrid]);
 
-  const totalPages = Math.ceil(participants.length / layoutConfig.cardsPerPage);
+  const totalPages = Math.ceil(filteredParticipants.length / layoutConfig.cardsPerPage);
   const handlePrint = () => window.print();
 
   const handleUpdateParticipant = (index: number, updated: Participant) => {
     setParticipants(prev => {
       const copy = [...prev];
+      // Note: index here is the index in the ORIGINAL participants list
       copy[index] = updated;
       return copy;
     });
@@ -154,7 +165,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const timer = setTimeout(handleFitToScreen, 10);
     return () => clearTimeout(timer);
-  }, [viewMode, settings.pageSize]);
+  }, [viewMode, settings.pageSize, filteredParticipants.length]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -165,11 +176,16 @@ const App: React.FC = () => {
         customLogo={customLogo}
         setCustomLogo={setCustomLogo}
         setParticipants={(data) => setParticipants(data)}
+        participants={participants}
+        filteredParticipants={filteredParticipants}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
         totalCards={participants.length}
         totalPages={totalPages}
         layoutConfig={layoutConfig}
         handlePrint={handlePrint}
         viewMode={viewMode}
+        onEditParticipant={setEditingIndex}
       />
 
       <div className="flex-grow bg-gray-500 flex flex-col h-screen overflow-hidden relative">
@@ -177,6 +193,7 @@ const App: React.FC = () => {
         <div className="h-14 bg-white border-b flex items-center justify-between px-6 shadow-sm z-10 no-print flex-shrink-0">
             <h2 className="font-bold text-gray-700 flex items-center gap-2">
                 {viewMode === 'single' ? 'Design Preview' : 'Sheet Preview'}
+                {searchQuery && <span className="text-xs font-normal text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">Filtered View</span>}
             </h2>
 
             <div className="flex items-center gap-4">
@@ -203,7 +220,7 @@ const App: React.FC = () => {
           <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm no-print">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
               <div className="p-4 border-b flex justify-between items-center bg-teal-50">
-                <h3 className="font-bold text-teal-900">Modify Participant Card #{editingIndex + 1}</h3>
+                <h3 className="font-bold text-teal-900">Modify Participant Card</h3>
                 <button type="button" onClick={() => setEditingIndex(null)} className="text-gray-400 hover:text-red-500 transition-colors"><X size={20}/></button>
               </div>
               <form 
@@ -240,25 +257,42 @@ const App: React.FC = () => {
         )}
 
         <div ref={containerRef} className="flex-grow overflow-auto p-8 print-container relative bg-gray-500 flex items-start justify-center">
-            <div style={{ width: contentDimensions.width * zoomLevel, height: contentDimensions.height * zoomLevel, position: 'relative', flexShrink: 0 }}>
-                <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left', position: 'absolute', top: 0, left: 0, width: contentDimensions.width }}>
-                    {viewMode === 'single' ? (
-                        <div className="shadow-2xl inline-block">
-                            <IDCard data={participants[0]} settings={settings} index={0} customLogo={customLogo} onEdit={setEditingIndex} />
-                        </div>
-                    ) : (
-                        <div className="space-y-8 inline-block">
-                            {Array.from({ length: totalPages }).map((_, pageIndex) => (
-                                <div key={pageIndex} className="preview-paper page-break" style={{ width: `${layoutConfig.width}mm`, height: `${layoutConfig.height}mm`, padding: `${layoutConfig.margin}mm`, display: 'grid', gridTemplateColumns: `repeat(${layoutConfig.cols}, max-content)`, gridAutoRows: 'max-content', gap: `${layoutConfig.gap}mm`, alignContent: 'start', justifyContent: 'center' }}>
-                                    {participants.slice(pageIndex * layoutConfig.cardsPerPage, (pageIndex + 1) * layoutConfig.cardsPerPage).map((person, i) => (
-                                        <IDCard key={i} data={person} settings={settings} index={(pageIndex * layoutConfig.cardsPerPage) + i} customLogo={customLogo} onEdit={setEditingIndex} />
-                                    ))}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+            {filteredParticipants.length === 0 ? (
+              <div className="bg-white p-12 rounded-2xl shadow-xl text-center max-w-sm">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                  <X size={32} />
                 </div>
-            </div>
+                <h3 className="font-bold text-gray-800 text-lg mb-1">No matches found</h3>
+                <p className="text-gray-500 text-sm">Try adjusting your search query or mapping to see your participants.</p>
+              </div>
+            ) : (
+              <div style={{ width: contentDimensions.width * zoomLevel, height: contentDimensions.height * zoomLevel, position: 'relative', flexShrink: 0 }}>
+                  <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left', position: 'absolute', top: 0, left: 0, width: contentDimensions.width }}>
+                      {viewMode === 'single' ? (
+                          <div className="shadow-2xl inline-block">
+                              <IDCard data={filteredParticipants[0]} settings={settings} index={participants.indexOf(filteredParticipants[0])} customLogo={customLogo} onEdit={(idx) => setEditingIndex(idx)} />
+                          </div>
+                      ) : (
+                          <div className="space-y-8 inline-block">
+                              {Array.from({ length: totalPages }).map((_, pageIndex) => (
+                                  <div key={pageIndex} className="preview-paper page-break" style={{ width: `${layoutConfig.width}mm`, height: `${layoutConfig.height}mm`, padding: `${layoutConfig.margin}mm`, display: 'grid', gridTemplateColumns: `repeat(${layoutConfig.cols}, max-content)`, gridAutoRows: 'max-content', gap: `${layoutConfig.gap}mm`, alignContent: 'start', justifyContent: 'center' }}>
+                                      {filteredParticipants.slice(pageIndex * layoutConfig.cardsPerPage, (pageIndex + 1) * layoutConfig.cardsPerPage).map((person, i) => (
+                                          <IDCard 
+                                            key={participants.indexOf(person)} 
+                                            data={person} 
+                                            settings={settings} 
+                                            index={participants.indexOf(person)} 
+                                            customLogo={customLogo} 
+                                            onEdit={(idx) => setEditingIndex(idx)} 
+                                          />
+                                      ))}
+                                  </div>
+                              ))}
+                          </div>
+                      )}
+                  </div>
+              </div>
+            )}
         </div>
       </div>
     </div>
