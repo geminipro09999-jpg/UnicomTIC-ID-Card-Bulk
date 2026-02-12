@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Square, Grid, ZoomIn, ZoomOut, Monitor, Maximize } from 'lucide-react';
+import { Square, Grid, ZoomIn, ZoomOut, Monitor, Maximize, X } from 'lucide-react';
 import useStickyState from './hooks/useStickyState';
 import IDCard from './components/IDCard';
 import Sidebar from './components/Sidebar';
@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'single' | 'grid'>('single');
   const [zoomLevel, setZoomLevel] = useState(1.0);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [participants, setParticipants] = useState<Participant[]>([
@@ -108,6 +109,15 @@ const App: React.FC = () => {
   const totalPages = Math.ceil(participants.length / layoutConfig.cardsPerPage);
   const handlePrint = () => window.print();
 
+  const handleUpdateParticipant = (index: number, updated: Participant) => {
+    setParticipants(prev => {
+      const copy = [...prev];
+      copy[index] = updated;
+      return copy;
+    });
+    setEditingIndex(null);
+  };
+
   const contentDimensions = useMemo(() => {
     if (viewMode === 'single') {
       return {
@@ -162,7 +172,8 @@ const App: React.FC = () => {
         viewMode={viewMode}
       />
 
-      <div className="flex-grow bg-gray-500 flex flex-col h-screen overflow-hidden">
+      <div className="flex-grow bg-gray-500 flex flex-col h-screen overflow-hidden relative">
+        {/* Toolbar */}
         <div className="h-14 bg-white border-b flex items-center justify-between px-6 shadow-sm z-10 no-print flex-shrink-0">
             <h2 className="font-bold text-gray-700 flex items-center gap-2">
                 {viewMode === 'single' ? 'Design Preview' : 'Sheet Preview'}
@@ -170,128 +181,78 @@ const App: React.FC = () => {
 
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
-                    <button 
-                        type="button"
-                        onClick={() => setZoomLevel(z => Math.max(0.1, z - 0.1))} 
-                        className="p-1 hover:bg-white rounded text-gray-600"
-                        title="Zoom Out"
-                    >
-                        <ZoomOut size={16} />
-                    </button>
+                    <button type="button" onClick={() => setZoomLevel(z => Math.max(0.1, z - 0.1))} className="p-1 hover:bg-white rounded text-gray-600" title="Zoom Out"><ZoomOut size={16} /></button>
                     <span className="text-xs font-mono w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
-                    <button 
-                        type="button"
-                        onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))} 
-                        className="p-1 hover:bg-white rounded text-gray-600"
-                        title="Zoom In"
-                    >
-                        <ZoomIn size={16} />
-                    </button>
+                    <button type="button" onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))} className="p-1 hover:bg-white rounded text-gray-600" title="Zoom In"><ZoomIn size={16} /></button>
                     <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                    <button 
-                        type="button"
-                        onClick={() => setZoomLevel(1)} 
-                        className="p-1 hover:bg-white rounded text-gray-500"
-                        title="Reset Zoom"
-                    >
-                        <Monitor size={16} />
-                    </button>
-                    <button 
-                        type="button"
-                        onClick={handleFitToScreen} 
-                        className="p-1 hover:bg-white rounded text-gray-500"
-                        title="Fit to Screen"
-                    >
-                        <Maximize size={16} />
-                    </button>
+                    <button type="button" onClick={() => setZoomLevel(1)} className="p-1 hover:bg-white rounded text-gray-500" title="Reset Zoom"><Monitor size={16} /></button>
+                    <button type="button" onClick={handleFitToScreen} className="p-1 hover:bg-white rounded text-gray-500" title="Fit to Screen"><Maximize size={16} /></button>
                 </div>
                 
                 <div className="h-6 w-px bg-gray-300"></div>
 
                 <div className="flex bg-gray-100 p-1 rounded-lg">
-                    <button 
-                        type="button"
-                        onClick={() => setViewMode('single')}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
-                            viewMode === 'single' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                    >
-                        <Square size={16} /> Single
-                    </button>
-                    <button 
-                        type="button"
-                        onClick={() => setViewMode('grid')}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
-                            viewMode === 'grid' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                    >
-                        <Grid size={16} /> Sheet
-                    </button>
+                    <button type="button" onClick={() => setViewMode('single')} className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${viewMode === 'single' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Square size={16} /> Single</button>
+                    <button type="button" onClick={() => setViewMode('grid')} className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${viewMode === 'grid' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Grid size={16} /> Sheet</button>
                 </div>
             </div>
         </div>
 
-        <div 
-            ref={containerRef}
-            className="flex-grow overflow-auto p-8 print-container relative bg-gray-500 flex items-start justify-center"
-        >
-            <div 
-                style={{ 
-                    width: contentDimensions.width * zoomLevel,
-                    height: contentDimensions.height * zoomLevel,
-                    position: 'relative',
-                    flexShrink: 0
+        {/* Editor Modal */}
+        {editingIndex !== null && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm no-print">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="p-4 border-b flex justify-between items-center bg-teal-50">
+                <h3 className="font-bold text-teal-900">Modify Participant Card #{editingIndex + 1}</h3>
+                <button type="button" onClick={() => setEditingIndex(null)} className="text-gray-400 hover:text-red-500 transition-colors"><X size={20}/></button>
+              </div>
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  handleUpdateParticipant(editingIndex, {
+                    name: String(formData.get('name')),
+                    id: String(formData.get('id')),
+                    date: String(formData.get('date')) || null
+                  });
                 }}
-            >
-                <div 
-                    style={{ 
-                        transform: `scale(${zoomLevel})`,
-                        transformOrigin: 'top left',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: contentDimensions.width,
-                    }}
-                >
+                className="p-6 space-y-4"
+              >
+                <div>
+                  <label htmlFor="edit-name" className="block text-xs font-bold text-gray-500 uppercase mb-1">Display Name</label>
+                  <input id="edit-name" name="name" type="text" defaultValue={participants[editingIndex].name} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition-all" required />
+                </div>
+                <div>
+                  <label htmlFor="edit-id" className="block text-xs font-bold text-gray-500 uppercase mb-1">ID / UT Number</label>
+                  <input id="edit-id" name="id" type="text" defaultValue={participants[editingIndex].id || ''} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition-all" />
+                </div>
+                <div>
+                  <label htmlFor="edit-date" className="block text-xs font-bold text-gray-500 uppercase mb-1">Specific Date (optional)</label>
+                  <input id="edit-date" name="date" type="text" placeholder="Default used if empty" defaultValue={participants[editingIndex].date || ''} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition-all" />
+                </div>
+                <div className="pt-4 flex gap-2">
+                  <button type="button" onClick={() => setEditingIndex(null)} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition-colors">Cancel</button>
+                  <button type="submit" className="flex-1 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg transition-colors shadow-md">Apply Change</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        <div ref={containerRef} className="flex-grow overflow-auto p-8 print-container relative bg-gray-500 flex items-start justify-center">
+            <div style={{ width: contentDimensions.width * zoomLevel, height: contentDimensions.height * zoomLevel, position: 'relative', flexShrink: 0 }}>
+                <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left', position: 'absolute', top: 0, left: 0, width: contentDimensions.width }}>
                     {viewMode === 'single' ? (
                         <div className="shadow-2xl inline-block">
-                            <IDCard 
-                                data={participants[0]} 
-                                settings={settings} 
-                                index={0}
-                                customLogo={customLogo}
-                            />
+                            <IDCard data={participants[0]} settings={settings} index={0} customLogo={customLogo} onEdit={setEditingIndex} />
                         </div>
                     ) : (
                         <div className="space-y-8 inline-block">
                             {Array.from({ length: totalPages }).map((_, pageIndex) => (
-                                <div 
-                                    key={pageIndex}
-                                    className="preview-paper page-break"
-                                    style={{ 
-                                        width: `${layoutConfig.width}mm`, 
-                                        height: `${layoutConfig.height}mm`,
-                                        padding: `${layoutConfig.margin}mm`, 
-                                        display: 'grid',
-                                        gridTemplateColumns: `repeat(${layoutConfig.cols}, max-content)`,
-                                        gridAutoRows: 'max-content', 
-                                        gap: `${layoutConfig.gap}mm`,
-                                        alignContent: 'start',
-                                        justifyContent: 'center'
-                                    }}
-                                >
-                                    {participants
-                                        .slice(pageIndex * layoutConfig.cardsPerPage, (pageIndex + 1) * layoutConfig.cardsPerPage)
-                                        .map((person, i) => (
-                                            <IDCard 
-                                                key={i} 
-                                                data={person} 
-                                                settings={settings} 
-                                                index={(pageIndex * layoutConfig.cardsPerPage) + i}
-                                                customLogo={customLogo}
-                                            />
-                                        ))
-                                    }
+                                <div key={pageIndex} className="preview-paper page-break" style={{ width: `${layoutConfig.width}mm`, height: `${layoutConfig.height}mm`, padding: `${layoutConfig.margin}mm`, display: 'grid', gridTemplateColumns: `repeat(${layoutConfig.cols}, max-content)`, gridAutoRows: 'max-content', gap: `${layoutConfig.gap}mm`, alignContent: 'start', justifyContent: 'center' }}>
+                                    {participants.slice(pageIndex * layoutConfig.cardsPerPage, (pageIndex + 1) * layoutConfig.cardsPerPage).map((person, i) => (
+                                        <IDCard key={i} data={person} settings={settings} index={(pageIndex * layoutConfig.cardsPerPage) + i} customLogo={customLogo} onEdit={setEditingIndex} />
+                                    ))}
                                 </div>
                             ))}
                         </div>

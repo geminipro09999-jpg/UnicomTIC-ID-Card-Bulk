@@ -1,4 +1,5 @@
 import React from 'react';
+import { Edit2 } from 'lucide-react';
 import UnicomLogo from './UnicomLogo';
 import { Participant, AppSettings } from '../types';
 
@@ -7,9 +8,10 @@ interface IDCardProps {
   settings: AppSettings;
   index: number;
   customLogo: string | null;
+  onEdit?: (index: number) => void;
 }
 
-const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo }) => {
+const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo, onEdit }) => {
   const { 
     cardWidthMM, cardHeightMM, logoSize, logoPos, globalDate, startId,
     fontSizes, namePos, idPos, cutMarkType
@@ -27,7 +29,7 @@ const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo }) =>
 
   return (
     <div 
-      className={`relative ${cutMarkType === 'border' ? 'cutting-border' : (cutMarkType === 'crop' ? '' : 'shadow-sm')}`}
+      className={`group relative ${cutMarkType === 'border' ? 'cutting-border' : (cutMarkType === 'crop' ? '' : 'shadow-sm')}`}
       style={{
         width: `${cardWidthMM}mm`,
         height: `${cardHeightMM}mm`,
@@ -35,6 +37,21 @@ const IDCard: React.FC<IDCardProps> = ({ data, settings, index, customLogo }) =>
         overflow: 'visible' // Allow crop marks to protrude
       }}
     >
+      {/* Hover Edit Button (No-Print) */}
+      {onEdit && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(index);
+          }}
+          className="absolute -top-3 -right-3 w-8 h-8 bg-teal-600 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 no-print hover:bg-teal-700 active:scale-90"
+          title="Edit individual card data"
+        >
+          <Edit2 size={14} />
+        </button>
+      )}
+
       {/* Crop Marks Implementation */}
       {cutMarkType === 'crop' && (
         <>

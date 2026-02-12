@@ -88,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           setColumnMapping(newMapping);
         }
       }
-      // Reset input value to allow re-uploading the same file
+      // Reset input value to allow re-uploading
       e.target.value = '';
     };
     reader.readAsBinaryString(file);
