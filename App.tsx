@@ -9,6 +9,20 @@ const DEFAULT_CARD_WIDTH = 85.6;
 const DEFAULT_CARD_HEIGHT = 54;
 const PIXELS_PER_MM = 3.7795275591; // Standard 96 DPI
 
+// Deep merge utility to handle nested settings overrides
+const deepMerge = (target: any, source: any) => {
+  if (!source) return target;
+  const result = { ...target };
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      result[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+};
+
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'single' | 'grid'>('single');
   const [zoomLevel, setZoomLevel] = useState(1.0);
@@ -49,7 +63,7 @@ const App: React.FC = () => {
     idAlign: { horizontal: 'right', vertical: 'top' },
     globalDate: '02/03/2025',
     startId: '010701'
-  }, 'unicom_settings_v1_7');
+  }, 'unicom_settings_v1_8'); // Incremented version to clear potentially corrupted state
 
   const paperSizes: Record<string, { width: number; height: number; name: string }> = {
       'A4': { width: 210, height: 297, name: 'A4' },
@@ -114,12 +128,11 @@ const App: React.FC = () => {
     const originalIndex = participants.indexOf(selectedParticipant);
     setParticipants(prev => {
         const copy = [...prev];
+        // Use deep merge for overrides to prevent deleting non-overridden properties in nested objects
+        const existingOverrides = copy[originalIndex].designOverrides || {};
         copy[originalIndex] = {
             ...copy[originalIndex],
-            designOverrides: {
-                ...(copy[originalIndex].designOverrides || {}),
-                ...newOverrides
-            }
+            designOverrides: deepMerge(existingOverrides, newOverrides)
         };
         return copy;
     });
@@ -177,16 +190,15 @@ const App: React.FC = () => {
   const goToNext = () => setSelectedFilteredIndex(prev => (prev + 1) % filteredParticipants.length);
   const goToPrev = () => setSelectedFilteredIndex(prev => (prev - 1 + filteredParticipants.length) % filteredParticipants.length);
 
-  // Effective settings for the Sidebar UI based on scope
+  // Effective settings for the Sidebar UI based on scope - now using deepMerge
   const effectiveSettingsForSidebar = editScope === 'individual' && selectedParticipant?.designOverrides
-    ? { ...settings, ...selectedParticipant.designOverrides }
+    ? deepMerge(settings, selectedParticipant.designOverrides)
     : settings;
 
   const handleSettingsChange = (newSettingsAction: any) => {
     if (editScope === 'global') {
         setSettings(newSettingsAction);
     } else {
-        // We handle functional updates manually for overrides
         const newPartial = typeof newSettingsAction === 'function' ? newSettingsAction(effectiveSettingsForSidebar) : newSettingsAction;
         handleUpdateParticipantOverrides(newPartial);
     }
